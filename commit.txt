@@ -1,0 +1,3 @@
+Moved assigment of X (feature matrix) and D (distance matrix)
+from __init__ to do_clustering in partition_cluster and density_cluster
+(in decision_graph for density peaks)

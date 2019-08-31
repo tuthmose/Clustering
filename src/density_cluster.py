@@ -11,19 +11,12 @@ class density_peaks(object):
             "kernel"  : "gaussian",
             "cutoff"  : 0.0,
             "percent" : 2.0,
-            "X"  : None,
-            "D" : None
         }
         for (prop, default) in prop_defaults.items():
-            setattr(self, prop, kwargs.get(prop, default))         
-        if self.metric=="precomputed" and self.D is None:
-            raise ValueError("missing precomputed distance matrix")
-        elif self.X is not None:
-            self.D = squareform(pdist(self.X,metric=self.metric))  
+            setattr(self, prop, kwargs.get(prop, default))          
         if self.kernel not in kernels:
             raise NotImplementedError("no kernel %s %s in" \
             % (self.kernel,self.__class__.__name__))
-        self.N = self.D.shape[0]
         if self.cutoff == 0.0:
             raise ValueError("cutoff must > 0")
         elif self.cutoff=="auto":
@@ -79,10 +72,17 @@ class density_peaks(object):
         #delta[self.order[0]] = np.max(self.D[self.order[0]])
         return delta,nneigh
 
-    def decision_graph(self):
+    def decision_graph(self, X=None, D=None):
         """
         calculate decision graph for data set
         """
+        # check X and/or D
+        if self.metric=="precomputed" and self.D is None:
+            raise ValueError("missing precomputed distance matrix")
+        elif self.X is not None:
+            self.D = squareform(pdist(self.X,metric=self.metric))
+        self.N = self.D.shape[0]
+        #calculate decision graph
         self.rho,self.order = self.calc_rho()
         self.delta,self.nneigh = self.calc_delta()
         return self.rho,self.delta
@@ -155,19 +155,11 @@ class DBSCAN(object):
     def __init__(self,**kwargs):
         """
         metric is the type of distance used
-        boot is the initialization method (random|kmeans++|input array)
-        niter is the number of iterations for each run
-        conv is the convergence criterion
-        nrun is the number of restarts (run with lowest SSE is returned)
-        voronoi is to use PAM or Voronoi iteration        
-        X(npoints,nfeatures) is the feature matrix
-        D(npoints,npoints) is the distance/dissimilarity (for PAM)
-        K is the number of clusters
+        minPTS is the minimum number of points xx
+        epsilon xxx
         """
         prop_defaults = {
             "metric"  : "euclidean",
-            "X"       : None,
-            "D"       : None,
             "minPTS"  : None,
             "epsilon" : None
         }
@@ -185,10 +177,14 @@ class DBSCAN(object):
             self.D = squareform(pdist(self.X,metric=self.metric))  
         self.N = self.D.shape[0]
             
-    def do_clustering(self):
+    def do_clustering(self, X=None, D=None):
         """
         labels (-1, or cluster ID), visited (0/1) and cluster number (start from 0)
+        X(npoints,nfeatures) is the feature matrix
+        D(npoints,npoints) is the distance/dissimilarity (for PAM)
         """
+        self.X = X
+        self.D = D
         self.labels = np.zeros(self.N,dtype='int')
         C = 0
         for p in range(self.N):

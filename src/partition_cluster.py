@@ -25,8 +25,6 @@ class PartitionClustering:
             "conv"      : 1e-5,
             "nrun"      : 10,
             "voronoi"   : False,
-            "X"         : None,
-            "D"         : None,
             "K"         : None
         }
         for (prop, default) in prop_defaults.items():
@@ -39,10 +37,14 @@ class PartitionClustering:
         assert isinstance( self.nrun, int )
         assert isinstance( self.niter, int )
  
-    def do_clustering(self):
+    def do_clustering(self, X=None, D=None):
         """
         initialize and run main loop
+        X(npoints,nfeatures) is the feature matrix
+        D(npoints,npoints) is the distance/dissimilarity (for PAM)        
         """
+        self.X = X
+        self.D = D
         self.init2()
         SSE_run = np.empty(self.nrun)
         centers_run  = list()
