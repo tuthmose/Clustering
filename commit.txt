@@ -1,3 +1,6 @@
-Moved assigment of X (feature matrix) and D (distance matrix)
-from __init__ to do_clustering in partition_cluster and density_cluster
-(in decision_graph for density peaks)
+Added Jarvis Patrick and Martin Brown variant.
+Added test notebook
+SNN to be finished
+
+Now, in density_cluster I always use "clusters" in place of "cluster" or "labels"
+as was done in partition_cluster

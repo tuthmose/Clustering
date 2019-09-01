@@ -55,7 +55,7 @@ class density_peaks(object):
         loop on ordered densities; for each point find
         minimum distance from other points with higher density
         the point with the highest density is assigned as 
-        neighbor to build cluster
+        neighbor to build clusters
         """
         maxd = np.max(self.D)
         nneigh = np.zeros(self.N,dtype=np.int64)
@@ -120,7 +120,7 @@ class density_peaks(object):
         for point in self.order:
             if self.clusters[point] == -1:
                 self.clusters[point] = self.clusters[self.nneigh[point]]
-        if np.any(self.clusters==-1):
+        if np.any(self.cluster==-1):
             raise ValueError("Error: Unassigned points are present")
         return self.clusters
 
@@ -155,8 +155,8 @@ class DBSCAN(object):
     def __init__(self,**kwargs):
         """
         metric is the type of distance used
-        minPTS is the minimum number of points xx
-        epsilon xxx
+        minPTS is the minimum number of points to be considered core point
+        epsilon minimum distance to be considered neighbors
         """
         prop_defaults = {
             "metric"  : "euclidean",
@@ -179,32 +179,32 @@ class DBSCAN(object):
             
     def do_clustering(self, X=None, D=None):
         """
-        labels (-1, or cluster ID), visited (0/1) and cluster number (start from 0)
+        cluster (-1, or cluster ID), visited (0/1) and cluster number (start from 0)
         X(npoints,nfeatures) is the feature matrix
         D(npoints,npoints) is the distance/dissimilarity (for PAM)
         """
         self.X = X
         self.D = D
-        self.labels = np.zeros(self.N,dtype='int')
+        self.clusters = np.zeros(self.N,dtype='int')
         C = 0
         for p in range(self.N):
-            if self.labels[p] != 0:
+            if self.clusters[p] != 0:
                 continue
             neighs = self.regionQuery(p)
             if len(neighs) == 0:
-                self.labels[p] = -1
+                self.clusters[p] = -1
                 continue
             #we have Unassigned point with enough density -> 
             #new cluster
             C += 1
-            self.labels[p] = C
+            self.clusters[p] = C
             self.growCluster(C,p,neighs)
             
     def growCluster(self,C,p,neighbors):
         """
         add point to a cluster or create a new one
         every point found among neighbor must
-        be visit
+        be visited
         """
         queue = list()
         queue.append(p)
@@ -217,9 +217,9 @@ class DBSCAN(object):
             for n in neighs_2:
                 #point was not dense but density connected
                 # or it was still to visit
-                if self.labels[n] <= 0:
-                    self.labels[n] = C
-                    if self.labels[n] == 0:
+                if self.clusters[n] <= 0:
+                    self.clusters[n] = C
+                    if self.clusters[n] == 0:
                         queue.append(n)
             to_visit += 1
     

@@ -40,6 +40,8 @@ class jarvis_patrick(object):
         else:
             self.D = distance.squareform(distance.pdist(X,metric=self.metric))
         self.N = self.D.shape[0]
+        if self.debug:
+            print(self.D)
         
     def find_nbrs(self):
         self.NB = np.zeros((self.N,self.K),dtype='int')
@@ -48,7 +50,7 @@ class jarvis_patrick(object):
             
     def same_cluster(self, I, J, A):
         #kmin neighbors in common
-        common_NN = set(self.NB[I]).intersection(self.NB[J])
+        common_NN = set(self.NB[I]).union(self.NB[J])
         if len(common_NN) >= self.Kmin:
             A[I,J] = 1
             A[J,I] = 1        
@@ -80,15 +82,9 @@ class jarvis_patrick(object):
                     print(e,assigned,noise)
                 continue
             members = np.where(self.A[e]>0)[0]
-            if len(members) > 0:
-                if self.debug:
-                    print("members",e,members)
-                clusters[members] = nclusters
-                assigned = assigned + list(members)
-            assigned.append(e)
+            clusters[members] = nclusters
+            assigned = assigned + list(members)
             nclusters += 1
-        print(assigned)
-        assert len(assigned) + len(noise) == self.N
         return nclusters, nnoise, clusters
         
     def do_clustering(self, X=None, D=None):
@@ -129,16 +125,14 @@ class brown_martin(jarvis_patrick):
     def find_nbrs(self):
         self.NB = list()
         for i in range(self.N):
-            nbrs = np.where(self.D[i] <= self.T)[0]
+            nbrs = np.argsort(self.D[self.D < self.T])
             self.NB.append(nbrs)
-        if self.debug:
-            print(self.NB)
         
     def same_cluster(self, I, J, A):
         L1 = len(self.NB[I])
         L2 = len(self.NB[J])
         Lmin = math.floor(self.Rmin*L2)
-        common_NN = set(self.NB[I]).intersection(self.NB[J])
+        common_NN = set(self.NB[I]).union(self.NB[J])
         if len(common_NN) >= Lmin:
             A[I,J] = 1
             A[J,I] = 1 
