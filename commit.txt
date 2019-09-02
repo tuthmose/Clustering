@@ -1,6 +1,2 @@
-Added Jarvis Patrick and Martin Brown variant.
-Added test notebook
-SNN to be finished
-
-Now, in density_cluster I always use "clusters" in place of "cluster" or "labels"
-as was done in partition_cluster
+Finished testing of JP and MB variant.
+Working on SNN

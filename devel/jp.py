@@ -3,6 +3,9 @@ import numpy as np
 import scipy as sp
 import scipy.spatial.distance as distance
 
+# a scikit.learn KDTree should be used but it does not
+# take precomputed distances
+
 class jarvis_patrick(object):
     """
     Jarvis Patrick clustering
@@ -40,6 +43,7 @@ class jarvis_patrick(object):
         else:
             self.D = distance.squareform(distance.pdist(X,metric=self.metric))
         self.N = self.D.shape[0]
+        self.A = np.zeros((self.N,self.N),dtype='bool')
         
     def find_nbrs(self):
         self.NB = np.zeros((self.N,self.K),dtype='int')
@@ -62,43 +66,61 @@ class jarvis_patrick(object):
                     self.same_cluster(i, j, A)
         return A
     
+    def grow_cluster(self,i,clusters,nclusters):
+        members = np.where(self.A[i]>0)[0]
+        if nclusters==0 or np.all(clusters[members]==-1):
+            #first cluster
+            #or neither this element nor its connections are in a existing cluster
+            clusters[members] = nclusters
+            label = nclusters
+            nclusters += 1
+        else:
+            C = set(clusters[members])
+            try:
+                C.remove(-1)
+            except:
+                pass
+            C = list(C)
+            label = C[0]
+            clusters[members] = label
+            for c in C[1:]:
+                clusters[clusters==c] = label
+                #nclusters = nclusters-1
+        # add any other element connected to members
+        for m in members:
+            new_m = np.where(self.A[m]>0)[0]
+            if len(new_m)>0:
+                clusters[new_m] = label
+        return nclusters
+    
     def build_clusters(self):
         if self.debug:
             print("Ad. matrix\n",self.A)
         # filt noise:
         noise  = np.where(np.count_nonzero(self.A,axis=0)==1)[0]
-        nnoise = len(noise)
         # build clusters
-        assigned = list()
         clusters = -np.ones(self.N,dtype='int')
         nclusters = 0
-        if self.debug:
-            print("elem., assigned, noise")
-        for e in range(self.N):
-            if e in assigned or e in noise:
-                if self.debug:
-                    print(e,assigned,noise)
+        for i in range(self.N):
+            if i in noise:
                 continue
-            members = np.where(self.A[e]>0)[0]
-            if len(members) > 0:
-                if self.debug:
-                    print("members",e,members)
-                clusters[members] = nclusters
-                assigned = assigned + list(members)
-            assigned.append(e)
-            nclusters += 1
-        print(assigned)
-        assert len(assigned) + len(noise) == self.N
-        return nclusters, nnoise, clusters
+            members = np.where(self.A[i]>0)[0]
+            nclusters = self.grow_cluster(i,clusters,nclusters)
+        labels = list(set(clusters))
+        nclusters = len(labels)
+        return nclusters, len(noise), clusters, labels
         
-    def do_clustering(self, X=None, D=None):
-        self.init2(X, D)
-        # nearest neighs
-        self.find_nbrs()
-        #adiancency matrix
-        self.A = self.adiancency_matrix()
+    def do_clustering(self, X=None, D=None, do_conn=True):
+        if do_conn:
+            self.init2(X, D)
+            # nearest neighs
+            self.find_nbrs()
+            #adiancency matrix
+            self.A = self.adiancency_matrix()
+        elif not np.any(self.A):
+            raise ValueError("No adiacency matrix available")
         # build clusters
-        self.nclusters, self.nnoise, self.clusters = self.build_clusters()
+        self.nclusters, self.nnoise, self.clusters, self.labels = self.build_clusters()
         #return
         return self.nclusters, self.nnoise, self.clusters
     
@@ -159,6 +181,7 @@ class SNN(jarvis_patrick):
             "K"         : None,            
             "minPTS"    : None,
             "epsilon"   : None,
+            "link_str"  : "simple",
             "debug"     : False
         }
         for (prop, default) in prop_defaults.items():
@@ -166,16 +189,21 @@ class SNN(jarvis_patrick):
         # check some input
         assert isinstance( self.K, int )
         assert isinstance( self.minPTS, int )
-        assert self.K > self.minPTS
+        assert self.K > self.minPTS 
         
-    def build_clusters(self):
-        clusters = list()
-        nclusters = 0
-        #assign core points to clustes
-        for cp in self.core_points:
-            members = np.where(self.SNN[cp,self.core_points] <= self.epsilon)[0]
-            
-                
+    def calc_link_st(self,neigh1,neigh2):
+        """
+        calculate strenght of link between nodes from
+        the number of common neighbors
+        """
+        if self.link_str == "simple":
+            count = len(set(neigh1).intersection(neigh2))
+        elif self.link_str == "weighted":
+            shared = list(set(neigh1).intersection(neigh2))
+            count = 0
+            for l in shared:
+                count += (self.K-neigh1.index(l)-1)*(self.K-neigh1.index(l)-1)
+        return count
 
     def do_clustering(self, X=None, D=None):
         self.init2(X, D)
