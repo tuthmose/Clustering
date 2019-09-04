@@ -1,2 +1,5 @@
-Finished testing of JP and MB variant.
-Working on SNN
+Fixed DBSCAN pure python version.
+Added test directory with all control tests
+
+to do: check new growcluster func in jp
+finish snn

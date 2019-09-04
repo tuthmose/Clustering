@@ -214,7 +214,7 @@ class DBSCAN(object):
         # now seach in all neighborhoods for connected points
         queue = list(neighbors[neighbors!=p])
         visited = [p]
-        while len(queue) > len(visited):
+        while len(queue) >= len(visited):
             #print(queue,len(queue))
             p = queue.pop()
             if p in visited:
@@ -227,11 +227,9 @@ class DBSCAN(object):
                 clusters[neighbors] = nclusters
                 queue = queue + list(neighbors[neighbors!=p])
             else:
-                # a density reachable point (leaf)?
-                 cl = np.where(clusters==nclusters)[0]
-                 Dd = np.where(self.D[cl,p] <= self.epsilon)[0]
-                 if len(Dd) > 0:
-                     clusters[p] = nclusters
+                # a density reachable point (leaf)
+                # already in the cluster
+                pass
             visited.append(p)
         return nclusters
 

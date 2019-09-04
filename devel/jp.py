@@ -46,9 +46,10 @@ class jarvis_patrick(object):
         self.A = np.zeros((self.N,self.N),dtype='bool')
         
     def find_nbrs(self):
-        self.NB = np.zeros((self.N,self.K),dtype='int')
+        NB = np.zeros((self.N,self.K),dtype='int')
         for i in range(self.N):
-            self.NB[i] = np.argsort(self.D[i])[:self.K]
+            NB[i] = np.argsort(self.D[i])[:self.K]
+        return NB
             
     def same_cluster(self, I, J, A):
         #kmin neighbors in common
@@ -85,7 +86,8 @@ class jarvis_patrick(object):
             clusters[members] = label
             for c in C[1:]:
                 clusters[clusters==c] = label
-                #nclusters = nclusters-1
+                if c != label:
+                    nclusters = nclusters-1
         # add any other element connected to members
         for m in members:
             new_m = np.where(self.A[m]>0)[0]
@@ -106,29 +108,24 @@ class jarvis_patrick(object):
                 continue
             members = np.where(self.A[i]>0)[0]
             nclusters = self.grow_cluster(i,clusters,nclusters)
-        labels = list(set(clusters))
-        nclusters = len(labels)
-        return nclusters, len(noise), clusters, labels
+        #labels = list(set(clusters))
+        #nclusters = len(labels)
+        return nclusters, len(noise), clusters#, labels
         
     def do_clustering(self, X=None, D=None, do_conn=True):
         if do_conn:
             self.init2(X, D)
             # nearest neighs
-            self.find_nbrs()
+            self.NB = self.find_nbrs()
             #adiancency matrix
             self.A = self.adiancency_matrix()
         elif not np.any(self.A):
             raise ValueError("No adiacency matrix available")
         # build clusters
-        self.nclusters, self.nnoise, self.clusters, self.labels = self.build_clusters()
+        #self.nclusters, self.nnoise, self.clusters, self.labels = self.build_clusters()
+        self.nclusters, self.nnoise, self.clusters = self.build_clusters()
         #return
         return self.nclusters, self.nnoise, self.clusters
-    
-    def clean(self):
-        """
-        delete results of last clustering
-        """
-        del self.D, self.A, self.NB, self.nclusters, self.nnoise, self.clusters
     
 class brown_martin(jarvis_patrick):
     """
@@ -171,8 +168,9 @@ class SNN(jarvis_patrick):
     A New Shared Nearest Neighbor Clustering Algorithm and its Applications
     - K is the minimum number of neighbors
     - minPTS is the minimum number of neighbor point with density > epsilon
-    - epsilon is the reachbility treshold
-    minPTS is the same of DBSCAN
+      is the same of DBSCAN
+    - epsilon is the reachbility threshold i.e. the Kmin parameter of standard
+      JP
     """
     
     def __init__(self,**kwargs):
@@ -191,30 +189,50 @@ class SNN(jarvis_patrick):
         assert isinstance( self.minPTS, int )
         assert self.K > self.minPTS 
         
-    def calc_link_st(self,neigh1,neigh2):
-        """
-        calculate strenght of link between nodes from
-        the number of common neighbors
-        """
+    def calc_snn_graph(self, NB):
+        #note that self.NB is 2D but SNN_graph is 1D
+        #also, in JP the first NN of a point is the point itself
+        snn_graph = np.zeros(self.N*(self.N+1)//2,dtype='int')
         if self.link_str == "simple":
-            count = len(set(neigh1).intersection(neigh2))
+            for i in range(self.N-1):
+                for j in range(i,self.N):           
+                #how many shared neighbors
+                #this is the standard JP strenght
+                    count = len(set(NB[i]).intersection(NB[j]))
+                    snn_graph[i+j*(j-1)//2] = count
         elif self.link_str == "weighted":
-            shared = list(set(neigh1).intersection(neigh2))
-            count = 0
-            for l in shared:
-                count += (self.K-neigh1.index(l)-1)*(self.K-neigh1.index(l)-1)
-        return count
+            # consider the order of the shared neighbors
+            for i in range(self.N-1):
+                for j in range(i,self.N):
+                    shared = list(set(NB[i]).intersection(NB[j]))
+                    count = 0
+                    for s in shared:
+                        ipos, = np.where(self.NB[i]==s)
+                        jpos, = np.where(self.NB[j]==s)
+                        count += (self.K + 1 - ipos)*(self.K + 1 - jpos)
+                    snn_graph[i+j*(j-1)//2] = count
+        return snn_graph
+    
+    def calc_snn_density(self, SNN_graph):
+        SNN_density = np.zeros(self.N-1)
+        for i in range(self.N):
+            rho = 0.
+            for j in range(i,self.N):
+                if SNN_graph[ !=]
+                    rho += lambda i,j: 1 if self.D[i,j] >= self.epsilon else 0.
+            SNN_density[i] = rho
+        return SNN_density
+    
 
     def do_clustering(self, X=None, D=None):
         self.init2(X, D)
         # nearest neighs
-        self.find_nbrs()
+        NB = self.find_nbrs()
         #Shared nearest neighbors graph
-        self.SNN = self.snn_matrix()
-        # find core points
-        self.core_points = self.find_core_points()
-        # build clusters
-        self.nclusters, self.nnoise, self.clusters = self.build_clusters()
+        SNN_graph = self.calc_snn_graph(NB)
+        # SNN density
+        SNN_density = self.calc_snn_density(SNN_graph)
+        #build clusters
+        self.nclusters, self.nnoise, self.clusters = self.build_clusters(XXX)
         #return
         return self.nclusters, self.nnoise, self.clusters
-    
