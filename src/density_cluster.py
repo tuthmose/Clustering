@@ -171,15 +171,14 @@ class DBSCAN(object):
 
     def init2(self, X, D):
         # check X and/or D
-        self.X = X
-        self.D = D
-        if self.metric=="precomputed" and self.D is None:
+        if self.metric=="precomputed" and D is None:
             raise ValueError("missing precomputed distance matrix")
-        elif self.X is None:
+        elif X is None:
             raise ValueError("Provide either a feature matrix or a distance matrix")
         else:
-            self.D = squareform(pdist(X,metric=self.metric))
-        self.N = self.D.shape[0]
+            D = squareform(pdist(X,metric=self.metric))
+        self.N = D.shape[0]
+        return D
             
     def do_clustering(self, X=None, D=None):
         """
@@ -187,57 +186,48 @@ class DBSCAN(object):
         X(npoints,nfeatures) is the feature matrix
         D(npoints,npoints) is the distance/dissimilarity matrix
         """
-        self.init2(X,D)
-        clusters = -np.ones(self.N,dtype='int')
+        D = self.init2(X,D)
+        clusters = -2 * np.ones(self.N,dtype='int')
         nclusters = 0
-        for p in range(self.N):
-            neighbors = self.calc_density(p)
-            if len(neighbors) < self.minPTS:
-                # a noise point (for now)
-                # self.clusters[p] = -1
+        for point in range(self.N):
+            if clusters[point] != -2:
+                #already assigned
                 continue
+            neighbors = self.find_neighbors(point,D)
+            if len(neighbors) < self.minPTS:
+                # a noise point (can be assigned as leaf later on)
+                clusters[point] = -1
             elif len(neighbors) >= self.minPTS:
                 #we have Unassigned point with enough density -> new cluster
-                nclusters = self.grow_cluster(p,neighbors,nclusters,clusters)
+                nclusters = self.grow_cluster(point,neighbors,nclusters,clusters,D)
         noise  = np.where(clusters==-1)[0]
-        #nclusters = len(set(clusters))
         return nclusters, len(noise), clusters
             
-    def grow_cluster(self,p,neighbors,nclusters,clusters):
-        if nclusters==0 or np.all(clusters[neighbors]==-1):
-            # first cluster
-            # or neither this element nor its neighbors are in a existing cluster
-            # add the point eps-neighborhood
-            clusters[neighbors] = nclusters
-            label = nclusters
-            nclusters += 1
+    def grow_cluster(self,point,neighbors,nclusters,clusters,D):
         # now seach in all neighborhoods for connected points
-        queue = list(neighbors[neighbors!=p])
-        visited = [p]
-        while len(queue) > len(visited):
-            #print(queue,len(queue))
-            p = queue.pop()
-            if p in visited:
-                continue
-            neighbors = self.calc_density(p)
-            #print(p,neighbors,len(queue))
-            #quit()
-            if len(neighbors) >= self.minPTS:
-                #another core point
-                clusters[neighbors] = nclusters
-                queue = queue + list(neighbors[neighbors!=p])
-            else:
-                # a density reachable point (leaf)?
-                 cl = np.where(clusters==nclusters)[0]
-                 Dd = np.where(self.D[cl,p] <= self.epsilon)[0]
-                 if len(Dd) > 0:
-                     clusters[p] = nclusters
-            visited.append(p)
+        clusters[point] = nclusters
+        pcounter = 0
+        queue = list(neighbors)
+        while pcounter < len(queue):
+            point = queue[pcounter]
+            if clusters[point] == -1:
+                # a density reachable point (leaf)
+                 clusters[point] = nclusters
+            elif clusters[point] == -2:
+                #another unassigned cluster
+                neighbors = self.find_neighbors(point,D)
+                if len(neighbors) >= self.minPTS:
+                    #another core point; add the eps-neighborhood
+                    #to the queue
+                    clusters[point] = nclusters
+                    queue = queue + list(neighbors)
+            pcounter += 1
+        # add the point eps-neighborhood to the cluster
+        clusters[queue] = nclusters       
+        nclusters += 1
         return nclusters
-
-        return nclusters, clusters
     
-    def calc_density(self,point):
-        Dp = np.where(self.D[:,point] <= self.epsilon)
+    def find_neighbors(self,point,D):
+        Dp = np.where(D[:,point] <= self.epsilon)
         return Dp[0]
     
