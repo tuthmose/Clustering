@@ -1,5 +1,3 @@
-Fixed DBSCAN pure python version.
-Added test directory with all control tests
-
-to do: check new growcluster func in jp
-finish snn
+Added Jarvis PAtrick, Brown-Martin variant and SNN 
+to density_cluster.
+Clean up of test directory
