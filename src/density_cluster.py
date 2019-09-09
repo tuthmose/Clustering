@@ -1,10 +1,32 @@
+import math
 import numpy as np
+import scipy as sp
+import scipy.spatial.distance as distance
 import sys
 from math import exp,sqrt
 from numpy.random import choice,randint,seed
 from scipy.spatial.distance import cdist,pdist,squareform
 
+# Density based cluster methods:
+# Density peaks
+# DBSCAN
+# Jarvis Patrick
+# Shared nearest neighbors
+
+# G Mancini, September 2019
+
+# a scikit.learn KDTree should be used but it does not
+# take precomputed distances
+# btw you can pass the SNN graph to sklearn.cluster.DBSCAN
+# with metric=precomputed
+
 class density_peaks(object):
+    """
+    Rodriguez, A.; Laio, A. 
+    Clustering by Fast Search and Find of Density Peaks. 
+    Science 2014, 344 (6191), 1492–1496. 
+    https://doi.org/10.1126/science.1242072.
+    """
     def __init__(self,**kwargs):
         prop_defaults = {
             "metric"  : "euclidean",
@@ -230,15 +252,6 @@ class DBSCAN(object):
     def find_neighbors(self,point,D):
         Dp = np.where(D[:,point] <= self.epsilon)
         return Dp[0]
-    
-import math
-import numpy as np
-import scipy as sp
-import scipy.spatial.distance as distance
-
-# a scikit.learn KDTree should be used but it does not
-# take precomputed distances
-# btw you can pass the SNN graph to sklearn.cluster.DBSCAN with metric=precomputed
 
 class jarvis_patrick(object):
     """

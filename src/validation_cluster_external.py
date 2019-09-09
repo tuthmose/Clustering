@@ -3,6 +3,11 @@ import numpy.ma as MA
 from math import log,sqrt
 from scipy.spatial.distance import cdist,pdist,squareform
 from scipy.special import binom
+
+# External cluster validation criteria
+# Mostly useful for test/development
+
+# G Mancini Sept. 2019
    
 class ext_cluster_eval(object):
     """

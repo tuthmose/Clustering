@@ -4,6 +4,12 @@ from math import log,sqrt
 from scipy.spatial.distance import cdist,pdist,squareform
 from scipy.special import binom
 
+# Internal cluster validation criteria:
+# - Davies Bouldin index
+# - Dunn index (single, average, complete)
+# - Pseudo F function
+# G Mancini September 2019
+
 # 1) *X* is ALWAYS the feature or coordinate matrix,
 #    [npoints x nfeatures]
 #    *D*, the distance matrix is
@@ -23,11 +29,6 @@ from scipy.special import binom
 #     set(clusters) ALWAYS gives the centroids labels
 #     cluster labels are ALWAYS positive integers
 #     a label of -1 ALWAYS indentifies noise
-# 
-# 3) convert RMSD matrix from gmx, where 376 is number of FRAMES in data set,
-#    4 the bte size (4 for a float) and %06f the desired output format
-#       hexdump -v -e '376/4 "%06f "' -e '"\n"' rmsdm_hex.dat > rmsdm.dat
-#              no. of entries/ sizeof(one entry) format of each entry
            
 def find_centroid(D,beta=1.,mask=None):
     """

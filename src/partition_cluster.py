@@ -4,6 +4,12 @@ from math import exp,sqrt
 from numpy.random import choice,randint,seed
 from scipy.spatial.distance import cdist,pdist,squareform
 
+# Partition based clustering methods.
+# - KMeans
+# - KMedoids (PAM)
+# - KMedians
+
+# G Mancini September 2019
 
 class PartitionClustering:
     def __init__(self,**kwargs):
