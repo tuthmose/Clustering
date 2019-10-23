@@ -107,7 +107,7 @@ def usr_mat(traj,sel = False):
             distmat[f,g] = sd.cityblock(usr[f],usr[g])
     return distmat
     
-def sort_traj(ref, torder, traj):
+def sort_traj(ref, torder, step, traj):
     """
     given a mdraj trajectory object, for each frame:
     - select atom or COM (if n>1) in ref
@@ -122,14 +122,14 @@ def sort_traj(ref, torder, traj):
     ordered  = np.empty((nframes, natoms),dtype='int')
     distance = np.empty((nframes, natoms))
     if isinstance(ref,int):
-        for f in range(nframes):
+        for f in range(0, nframes, step):
             refX = np.expand_dims(traj.xyz[f,ref],axis=0)
             d = sd.cdist(refX,traj.xyz[f,torder])[0]
             o = np.argsort(d)
             distance[f] = d[o]
             ordered[f] = torder[o]
     elif len(ref) > 1:
-        for f in range(nframes):
+        for f in range(0, nframes, step):
             com = np.average(traj.xyz[f,ref],axis=0)
             com = np.expand_dims(com,axis=0)
             d   = sd.cdist(com, traj.xyz[torder])[0]
