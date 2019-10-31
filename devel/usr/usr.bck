@@ -10,21 +10,20 @@ void get_momenta(double *dist, double *usr, int natoms, int s, double Ni, double
      * s = 6 -> farthest  from centroid
      * s = 9 -> farthest  from farthest  from centroid
      */
-    double mu=0., mu2=0., mu3=0., mu4=0., var;
+    double mu=0., mu2=0., mu3=0.;
     
-    //#pragma omp simd reduction(+:mu,mu2,mu3)
+    #pragma omp parallel for simd reduction(+:mu,mu2,mu3)
     for(int i=0;i<natoms;i++)
     {
         mu  += dist[i];
-        mu2 += pow(dist[i],2);
+        mu2 += dist[i] * dist[i];
         mu3 += pow(dist[i],3);
-        mu4 += pow(dist[i],4);
     }
 
-    usr[s] = mu*Ni;
-    var = mu2*Ni - pow(usr[s],2);
-    usr[s+1] = (mu2 -pow(mu,2)*Ni)*N1i;
-    usr[s+2] = ((mu3*Ni -pow(usr[s],3) -3.*usr[s]*var)/powf(var,1.5));
+    usr[s]   = mu*Ni;
+    usr[s+1] = mu2*Ni - usr[s]*usr[s];
+    //usr[s+1] = (mu2 -pow(mu,2)*Ni)*N1i;
+    usr[s+2] = ((mu3*Ni -pow(usr[s],3) -3.*usr[s]*usr[s+1])/powf(usr[s+1],1.5));
     
 }
 
@@ -39,10 +38,9 @@ void get_dist(double *dist, double *X, double *y, int natoms)
 
     double vx, vy, vz;
     
-    //#pragma omp parallel for private(vx,vy,vz)
     for(int i=0;i<natoms;i++)
     {
-        //#pragma omp simd
+        #pragma omp simd
         {
             vx = pow((X[i*3]   - y[0]),2);
             vy = pow((X[i*3+1] - y[1]),2);
@@ -53,7 +51,7 @@ void get_dist(double *dist, double *X, double *y, int natoms)
 }
 
 
-void calc_usr(double *X, double *usr, int natoms, double *weights)
+void calc_usr(double *X, double *usr, int natoms, double *weights, int verbosity)
 {
 
     double xav=0., yav=0., zav=0.;
@@ -83,13 +81,16 @@ void calc_usr(double *X, double *usr, int natoms, double *weights)
     get_momenta(dist,usr,natoms,0,Ni,N1i);
     
     gsl_vector_view CTD = gsl_vector_view_array(ctd,3);
-    /*gsl_vector_fprintf(stdout,&CTD.vector,"%f");     
-    gsl_vector_fprintf(stdout,&DIST.vector,"%f");*/
+    
+    if(verbosity >= 1)
+    {
+        gsl_vector_fprintf(stdout,&CTD.vector,"%f");     
+        gsl_vector_fprintf(stdout,&DIST.vector,"%f");
+    }
     
     // cst and fct
     int cst = gsl_vector_min_index(&DIST.vector);
     int fct = gsl_vector_max_index(&DIST.vector);
-
     
     // distances and momenta to cst   
     get_dist(dist,X,&X[cst*3],natoms);  
@@ -110,12 +111,17 @@ void calc_usr(double *X, double *usr, int natoms, double *weights)
 
 void main(int argc, char *argv[])
 {
+    // the main function is used to read a single
+    // xyz matrix w/o atomic numbers for test purposes
+
+    // cmd line: <input file> <natoms> <verbosity>
+    
     int natoms = atoi(argv[2]);
-    double ctd[3] = {0.,0.,0.};
+    int verbosity = atoi(argv[3]);
     int usew = 0; //weights nyi
     double usr[12];
     int k;
-    
+
     // read data
     double *X = malloc(natoms * 3 * sizeof(double *));
     if (X == NULL) 
@@ -124,7 +130,7 @@ void main(int argc, char *argv[])
         exit(0);
     }
 
-    // scan input file, determine data set size
+    // scan input file
     FILE *fp;
     fp = fopen(argv[1], "r");
     for (int i=0; i < natoms;i++)
@@ -135,17 +141,35 @@ void main(int argc, char *argv[])
             }
     }    
     fclose(fp);
-    
+
     double *weights = malloc(natoms * sizeof(double));
-    for(int i=0;i<natoms;i++)
-        weights[i] = 1.0;
+    if(usew == 0)
+    {
+        for(int i=0;i<natoms;i++)
+            weights[i] = 1.0;
+    }
     //end read data
     
-    
-    calc_usr(X,usr,natoms,weights);
-    for(int i = 0; i< 12; i++)
-        printf("USR %d %f\n",i,usr[i]);
-    
+    //print input
+    if(verbosity >= 1)
+    {
+        printf("Input\n");
+        for(int i = 0; i< natoms; i++)
+            printf("%d %f %f %f %f\n",i,weights[i],X[i*3],X[i*3+1],X[i*3+2]);
+    }
+        
+    calc_usr(X, usr, natoms, weights, verbosity);
+
+    if(verbosity >= 1)
+    {   
+        for(int i = 0; i< 12; i++)
+           printf("USR %d %f\n",i,usr[i]);
+    }else
+    {
+        for(int i = 0; i< 12; i++)
+           printf("  %10.8f  ",usr[i]);
+        printf("\n");
+    }    
     free(X);
     free(weights);
 }
