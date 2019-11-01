@@ -12,7 +12,7 @@ void get_momenta(double *dist, double *usr, int natoms, int s, double Ni, double
      */
     double mu=0., mu2=0., mu3=0.;
     
-    #pragma omp parallel for simd reduction(+:mu,mu2,mu3)
+    #pragma omp simd reduction(+:mu,mu2,mu3)
     for(int i=0;i<natoms;i++)
     {
         mu  += dist[i];
