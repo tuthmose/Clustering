@@ -13,5 +13,5 @@
 
 void get_momenta (double *dist, double *usr, int natoms, int s, double Ni, double N1i);
 void get_dist (double *dist, double *X, double *y, int natoms);
-void calc_usr(double *X, double *usr, int natoms, double *weights);
+void calc_usr(double *X, double *usr, int natoms, double *weights, int verbosity);
    

@@ -65,16 +65,16 @@ def USR(coords,mass=None):
     ultrafrash shape recognition
     see Ballester, Proc. roy. soc. A, 2007
     """
-    # - ctd mol. geom. centroid
+    # - ctd = mol. geom. centroid
     ctd = np.average(coords,axis=0,weights=mass)
     D_ctd = np.linalg.norm(coords-ctd,axis=1)
-    # - cst nearest atom to ctd    
+    # - cst = nearest atom to ctd    
     cst = coords[np.argmin(D_ctd)]
-    # - fct farthest atom from ctd
+    # - fct = farthest atom from ctd
     fct = coords[np.argmax(D_ctd)]
     # - distances from fct
     D_fct = np.linalg.norm(coords-fct,axis=1)
-    # - ftf farthest from fct    
+    # - ftf = farthest from fct    
     ftf = coords[np.argmax(D_fct)]
     usr = np.empty(12)
     #distances from cst and ftf
