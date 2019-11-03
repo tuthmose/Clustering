@@ -92,18 +92,30 @@ def usr_mat(traj,sel = False):
     calculates USR for sel atom indexes
     then generate USR distance matrix
     operates on all frames
+    the use of manhattan d. is part
+    of the procedure
     """
     nframes = traj.xyz.shape[0]
-    usr = np.empty(nframes)
+    usr = np.empty((nframes,12))
     if sel:
         for f in range(nframes):
             usr[f] = USR(traj.xyz[f][:,sel])
     else:
         for f in range(nframes):
             usr[f] = USR(traj.xyz[f])                  
-    distmat = np.zeros(nframes,nframes)
+    distmat = np.zeros((nframes,nframes))
     for f in range(nframes-1):
         for g in range(f+1,nframes):
             distmat[f,g] = sd.cityblock(usr[f],usr[g])
     return distmat
     
+def one_to_twondx(k,n):
+    """
+    return i,j indexes for
+    single index 1D triangular
+    matrix
+    """
+    #k = ((n*(n-1))/2) - ((n-i)*((n-i)-1))/2 + j - i - 1
+    i = n - 2 - int(sqrt(-8*k + 4*n*(n-1)-7)/2.0 - 0.5)
+    j = k + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2
+    return i, j
