@@ -307,8 +307,12 @@ class jarvis_patrick(object):
         find the kNN of all points
         """        
         NB = np.zeros((self.N,self.K),dtype='int')
-        for i in range(self.N):
-            NB[i] = np.argsort(D[i])[:self.K]
+        if W == None:
+            for i in range(self.N):
+                NB[i] = np.argsort(D[i])[:self.K]
+        else:
+            for i in range(self.N):
+                NB[i] = np.argsort((1./W[i])*D[i])[:self.K]            
         return NB
             
     def same_cluster(self, I, J, A, NB):
@@ -388,11 +392,19 @@ class jarvis_patrick(object):
                 raise ValueError
         return nclusters, clusters
         
-    def do_clustering(self, X=None, D=None, do_conn=True):
+    def do_clustering(self, X=None, D=None, W=None, do_conn=True):
+        """
+        X = features
+        D = distances (precomputed)
+        W = weights
+        do_conn == False; class was already instatiated with 
+        data and adiancency matrix was calculated; we are only
+        changing P and K
+        """
         if do_conn:
             D = self.init2(X, D)
             # nearest neighs
-            NB = self.find_nbrs(D)
+            NB = self.find_nbrs(D,W)
             #adiancency matrix
             A = self.adiancency_matrix(NB)
         elif not np.any(self.A):
@@ -459,7 +471,7 @@ class SNN(jarvis_patrick):
       is the same of DBSCAN
     - epsilon is the reachbility threshold i.e. the Kmin parameter of standard
       JP
-    grow_cluster is almost verbatim from DBSCAN
+    grow_cluster is almost a verbatim copy from DBSCAN
     """
     
     def __init__(self,**kwargs):
@@ -516,16 +528,17 @@ class SNN(jarvis_patrick):
         rho = len(neighbors)
         return rho, neighbors
 
-    def do_clustering(self, X=None, D=None):
+    def do_clustering(self, X=None, D=None, W=None):
         """
         clusters (-1, or cluster ID, 0:N-1), cluster number (start from 0)
         X(npoints,nfeatures) is the feature matrix
         D(npoints,npoints) is the distance/dissimilarity matrix
+        W(npoints) are the weights
         """
         D = self.init2(X,D)
         ###
         # Do the jarvis patrick steps
-        NB = self.find_nbrs(D)
+        NB = self.find_nbrs(D,W)
         SNN_graph = self.calc_snn_graph(NB)
         ###
         # Do the DBSCAN steps

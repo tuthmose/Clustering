@@ -109,7 +109,7 @@ def usr_mat(traj,sel = False):
             distmat[f,g] = sd.cityblock(usr[f],usr[g])
     return distmat
     
-def one_to_twondx(k,n):
+def one_2_two_ndx(k,n):
     """
     return i,j indexes for
     single index 1D triangular
@@ -119,3 +119,13 @@ def one_to_twondx(k,n):
     i = n - 2 - int(sqrt(-8*k + 4*n*(n-1)-7)/2.0 - 0.5)
     j = k + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2
     return i, j
+
+def tri_2_square(dim, flat):
+    """
+    return symmetric square matrix from
+    flat 1D array
+    """
+    tri = np.zeros((dim, dim))
+    tri[np.triu_indices(dim, 1)] = flat
+    tri[np.tril_indices(dim, 1)] = flat
+    return tri
