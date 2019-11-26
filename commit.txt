@@ -1,3 +1,4 @@
-Added Jarvis PAtrick, Brown-Martin variant and SNN 
-to density_cluster.
-Clean up of test directory
+rewritten kmedoids as kmeans like solution
+kmeans++ now works for kmedoids too
+added PAM but result ???
+added gromos

@@ -6,14 +6,14 @@
 `validation/` includes notes about clustering validation
 
 Algorithms included were selected because:
-- (i) they were not present at the time in scikit-learn (but perhaps they are) e. g. Density Peaks or pseudoF
-- (ii) they were but I needed some feature changed (e. g. SNN or PAM).
+- (i)  they were not present at the time in scikit-learn or extras (but perhaps they are now) e. g. Density Peaks or SNN
+- (ii) self teaching
 
 all clustering algorithms are imported by `myclusters.py`
 all validation ones are imported by `mymetrics.py`
 `mdutils` includes various helper functions for Molecular Dynamics 
-trajectories includeing the USR distance (pure Python version)
+trajectories including, e. g. USR distance 
 
 Implementation is pure Python/numpy and *slow*. I did not even
-bother with unraveling triangular matrices.
+bother with unraveling triangular matrices (not often at least).
 

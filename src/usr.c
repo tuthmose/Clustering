@@ -1,5 +1,17 @@
 #include <usr.h>
 
+double l1dist(int ncomp, double *usr1, double *usr2)
+{
+    int i;
+    double L1 = .0;
+    
+    #pragma omp simd reduction(+:L1)
+    for(int i=0; i<ncomp; i++)
+        L1  += abs(usr1[i] - usr2[i]);
+            
+    return L1;
+}
+
 void get_momenta(double *dist, double *usr, int natoms, int s, double Ni, double N1i)
 {
     /*
@@ -27,7 +39,6 @@ void get_momenta(double *dist, double *usr, int natoms, int s, double Ni, double
     
 }
 
-
 void get_dist(double *dist, double *X, double *y, int natoms)
 {
     /*
@@ -49,7 +60,6 @@ void get_dist(double *dist, double *X, double *y, int natoms)
         }
     }
 }
-
 
 void calc_usr(double *X, double *usr, int natoms, double *weights, int verbosity)
 {

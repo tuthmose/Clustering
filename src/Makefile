@@ -1,7 +1,13 @@
 CC=gcc
 CFLAGS= -std=c99 -fPIC
+<<<<<<< HEAD
 OPTFLAGS=-O3 -ffast-math -ftree-vectorize -march=native -fomit-frame-pointer
 CPPFLAGS=-I. -I/usr/include/python3.7/ -I/usr/local/lib/python3.7/dist-packages/numpy/core/include/
+=======
+OPTFLAGS=-O3 -ffast-math -ftree-vectorize -march=native -fomit-frame-pointer -finline-functions
+#CPPFLAGS=-I. -I/usr/include/python3.6/ -I/usr/local/lib/python3.6/dist-packages/numpy/core/include/
+CPPFLAGS=-I. -I/usr/include/python3.7m/ -I/usr/local/lib/python3.7/dist-packages/numpy/core/include/
+>>>>>>> test
 LDFLAGS=-lm -fopenmp -lgsl -lgslcblas -lblas
 INCLUDE = usr.h
 SHELL	= /bin/sh
@@ -9,6 +15,10 @@ OBJECTS  = usr.o
 
 SWIG     = swig 
 SWIGOPT  = -python -Wall -l/usr/local/lib/python3.7/dist-packages/numpy/numpy.i
+<<<<<<< HEAD
+=======
+#SWIGOPT  = -python -Wall -l/usr/local/lib/python3.6/dist-packages/numpy/numpy.i
+>>>>>>> test
 SWIGOBJS = pyusr_wrap.o
 
 all: usr.exe pyusr

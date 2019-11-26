@@ -92,48 +92,40 @@ def usr_mat(traj,sel = False):
     calculates USR for sel atom indexes
     then generate USR distance matrix
     operates on all frames
+    the use of manhattan d. is part
+    of the procedure
     """
     nframes = traj.xyz.shape[0]
-    usr = np.empty(nframes)
+    usr = np.empty((nframes,12))
     if sel:
         for f in range(nframes):
             usr[f] = USR(traj.xyz[f][:,sel])
     else:
         for f in range(nframes):
             usr[f] = USR(traj.xyz[f])                  
-    distmat = np.zeros(nframes,nframes)
+    distmat = np.zeros((nframes,nframes))
     for f in range(nframes-1):
         for g in range(f+1,nframes):
             distmat[f,g] = sd.cityblock(usr[f],usr[g])
     return distmat
     
-def sort_traj(ref, torder, step, traj):
+def one_2_two_ndx(k,n):
     """
-    given a mdraj trajectory object, for each frame:
-    - select atom or COM (if n>1) in ref
-    - order atoms in torder
-    return array of ordered atoms and distances
-    does not manage fragments (nyi)
+    return i,j indexes for
+    single index 1D triangular
+    matrix
     """
-    nframes  = traj.xyz.shape[0]
-    if isinstance(torder, list):
-        torder = np.array(torder)
-    natoms   = len(torder)
-    ordered  = np.empty((nframes, natoms),dtype='int')
-    distance = np.empty((nframes, natoms))
-    if isinstance(ref,int):
-        for f in range(0, nframes, step):
-            refX = np.expand_dims(traj.xyz[f,ref],axis=0)
-            d = sd.cdist(refX,traj.xyz[f,torder])[0]
-            o = np.argsort(d)
-            distance[f] = d[o]
-            ordered[f] = torder[o]
-    elif len(ref) > 1:
-        for f in range(0, nframes, step):
-            com = np.average(traj.xyz[f,ref],axis=0)
-            com = np.expand_dims(com,axis=0)
-            d   = sd.cdist(com, traj.xyz[torder])[0]
-            ordered[f] = np.argsort(d)
-            distance[f] = d[ordered[f]]
-    return ordered, distance
-            
+    #k = ((n*(n-1))/2) - ((n-i)*((n-i)-1))/2 + j - i - 1
+    i = n - 2 - int(sqrt(-8*k + 4*n*(n-1)-7)/2.0 - 0.5)
+    j = k + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2
+    return i, j
+
+def tri_2_square(dim, flat):
+    """
+    return symmetric square matrix from
+    flat 1D array
+    """
+    tri = np.zeros((dim, dim))
+    tri[np.triu_indices(dim, 1)] = flat
+    tri[np.tril_indices(dim, 1)] = flat
+    return tri

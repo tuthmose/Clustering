@@ -302,13 +302,17 @@ class jarvis_patrick(object):
         self.N = D.shape[0]
         return D
         
-    def find_nbrs(self,D):
+    def find_nbrs(self,D,W=None):
         """
         find the kNN of all points
         """        
         NB = np.zeros((self.N,self.K),dtype='int')
-        for i in range(self.N):
-            NB[i] = np.argsort(D[i])[:self.K]
+        if W is None:
+            for i in range(self.N):
+                NB[i] = np.argsort(D[i])[:self.K]
+        else:
+            for i in range(self.N):
+                NB[i] = np.argsort((1./W[i])*D[i])[:self.K]            
         return NB
             
     def same_cluster(self, I, J, A, NB):
@@ -388,11 +392,19 @@ class jarvis_patrick(object):
                 raise ValueError
         return nclusters, clusters
         
-    def do_clustering(self, X=None, D=None, do_conn=True):
+    def do_clustering(self, X=None, D=None, W=None, do_conn=True):
+        """
+        X = features
+        D = distances (precomputed)
+        W = weights
+        do_conn == False; class was already instatiated with 
+        data and adiancency matrix was calculated; we are only
+        changing P and K
+        """
         if do_conn:
             D = self.init2(X, D)
             # nearest neighs
-            NB = self.find_nbrs(D)
+            NB = self.find_nbrs(D,W)
             #adiancency matrix
             A = self.adiancency_matrix(NB)
         elif not np.any(self.A):
@@ -454,12 +466,12 @@ class SNN(jarvis_patrick):
     A New Shared Nearest Neighbor Clustering Algorithm and Its Applications. 
     In Workshop on clustering high dimensional data and its applications 
     at 2nd SIAM international conference on data mining; 2002; pp 105–115.
-    - K is the minimum number of neighbors
+    - K is the number of neighbors to look at for kNN search
     - minPTS is the minimum number of neighbor point with density > epsilon
       is the same of DBSCAN
     - epsilon is the reachbility threshold i.e. the Kmin parameter of standard
       JP
-    grow_cluster is almost verbatim from DBSCAN
+    grow_cluster is almost a verbatim copy from DBSCAN
     """
     
     def __init__(self,**kwargs):
@@ -475,13 +487,12 @@ class SNN(jarvis_patrick):
         for (prop, default) in prop_defaults.items():
             setattr(self, prop, kwargs.get(prop, default))         
         # check some input
-        assert isinstance( self.K, int )
-        assert isinstance( self.epsilon, int )
-        assert isinstance( self.minPTS, int )
+        assert isinstance( self.K, int ) or isinstance( self.K, np.int64 )
+        assert isinstance( self.epsilon, int ) or isinstance( self.epsilon, np.int64 )
+        assert isinstance( self.minPTS, int ) or isinstance( self.minPTS, np.int64 )
         assert self.K > self.minPTS
         assert self.K > self.epsilon
         self.Kmin = self.epsilon
-
         
     def calc_snn_graph(self, NB):
         snn_graph = self.K * np.eye(self.N,dtype='int')
@@ -516,16 +527,17 @@ class SNN(jarvis_patrick):
         rho = len(neighbors)
         return rho, neighbors
 
-    def do_clustering(self, X=None, D=None):
+    def do_clustering(self, X=None, D=None, W=None):
         """
         clusters (-1, or cluster ID, 0:N-1), cluster number (start from 0)
         X(npoints,nfeatures) is the feature matrix
         D(npoints,npoints) is the distance/dissimilarity matrix
+        W(npoints) are the weights
         """
         D = self.init2(X,D)
         ###
         # Do the jarvis patrick steps
-        NB = self.find_nbrs(D)
+        NB = self.find_nbrs(D,W)
         SNN_graph = self.calc_snn_graph(NB)
         ###
         # Do the DBSCAN steps
