@@ -5,9 +5,14 @@ import random
 from scipy.spatial.distance import cdist,pdist,squareform
 
 # Partition based clustering methods.
+# under the same parent class
 # - KMeans
-# - KMedoids (PAM)
+# - KMedoids 
 # - KMedians
+# - PAM
+# as a different one:
+# - GROMOS
+
 
 # G Mancini September 2019
 
@@ -332,6 +337,7 @@ class PAM(KMedoids):
         D(npoints,npoints) is the distance/dissimilarity (for PAM)
         W(npoints) are the weights
         """
+        print("WARNING: still testing this method")
         self.X = X
         self.D = D
         self.W = W
