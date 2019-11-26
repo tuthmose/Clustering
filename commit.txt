@@ -1,6 +1,4 @@
-Modified partition_clustering.
-Eliminated voronoi iteration in PAM as is not efficient.
-Eliminated "clusters" argument in PartitionClustering.assign defined subclasses (not needed).
-PAM is not PAM really but a KM approximation of KMedoids problem: renamed KMeans2.
-Moved kmeans++ under KMeans class.
-Added random state attribute.
+rewritten kmedoids as kmeans like solution
+kmeans++ now works for kmedoids too
+added PAM but result ???
+added gromos

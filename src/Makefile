@@ -1,6 +1,7 @@
 CC=gcc
 CFLAGS= -std=c99 -fPIC
 OPTFLAGS=-O3 -ffast-math -ftree-vectorize -march=native -fomit-frame-pointer -finline-functions
+#CPPFLAGS=-I. -I/usr/include/python3.6/ -I/usr/local/lib/python3.6/dist-packages/numpy/core/include/
 CPPFLAGS=-I. -I/usr/include/python3.7m/ -I/usr/local/lib/python3.7/dist-packages/numpy/core/include/
 LDFLAGS=-lm -fopenmp -lgsl -lgslcblas -lblas
 INCLUDE = usr.h

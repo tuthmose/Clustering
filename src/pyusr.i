@@ -10,7 +10,7 @@
 #include "usr.h"
 %}
 
-%include "/usr/local/lib/python3.7/dist-packages/numpy/numpy.i"
+%include "numpy.i"
 
 %init %{
 import_array();

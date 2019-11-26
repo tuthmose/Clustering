@@ -302,12 +302,12 @@ class jarvis_patrick(object):
         self.N = D.shape[0]
         return D
         
-    def find_nbrs(self,D):
+    def find_nbrs(self,D,W=None):
         """
         find the kNN of all points
         """        
         NB = np.zeros((self.N,self.K),dtype='int')
-        if W == None:
+        if W is None:
             for i in range(self.N):
                 NB[i] = np.argsort(D[i])[:self.K]
         else:
@@ -466,7 +466,7 @@ class SNN(jarvis_patrick):
     A New Shared Nearest Neighbor Clustering Algorithm and Its Applications. 
     In Workshop on clustering high dimensional data and its applications 
     at 2nd SIAM international conference on data mining; 2002; pp 105–115.
-    - K is the minimum number of neighbors
+    - K is the number of neighbors to look at for kNN search
     - minPTS is the minimum number of neighbor point with density > epsilon
       is the same of DBSCAN
     - epsilon is the reachbility threshold i.e. the Kmin parameter of standard
@@ -487,13 +487,12 @@ class SNN(jarvis_patrick):
         for (prop, default) in prop_defaults.items():
             setattr(self, prop, kwargs.get(prop, default))         
         # check some input
-        assert isinstance( self.K, int )
-        assert isinstance( self.epsilon, int )
-        assert isinstance( self.minPTS, int )
+        assert isinstance( self.K, int ) or isinstance( self.K, np.int64 )
+        assert isinstance( self.epsilon, int ) or isinstance( self.epsilon, np.int64 )
+        assert isinstance( self.minPTS, int ) or isinstance( self.minPTS, np.int64 )
         assert self.K > self.minPTS
         assert self.K > self.epsilon
         self.Kmin = self.epsilon
-
         
     def calc_snn_graph(self, NB):
         snn_graph = self.K * np.eye(self.N,dtype='int')
