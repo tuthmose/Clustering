@@ -387,7 +387,7 @@ class cluster_eval(object):
             DBI += np.max(Rij)
         return DBI / self.N
 
-    def pseudoF(self,coord,clust,size,dist,use_centroid=False):
+    def CHScore(self,coord,clust,size,dist,use_centroid=False):
         """
         pseudo and WSS for elbow criterion
         use either centroids (if only distances are available)
@@ -416,3 +416,12 @@ class cluster_eval(object):
             BSS += db
         psF = ( BSS/(self.N -1) ) / ( WSS/(self.NData - self.N) )
         return np.asarray((psF, WSS))
+    
+    def f_K(self):
+        """
+        f(K) function from 10.1243/095440605X8298
+        """
+        #https://datasciencelab.wordpress.com/2014/01/21/selection-of-k-in-k-means-clustering-reloaded/
+        raise NotImplementedError
+    
+    

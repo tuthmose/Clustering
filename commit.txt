@@ -1,4 +1,5 @@
-rewritten kmedoids as kmeans like solution
-kmeans++ now works for kmedoids too
-added PAM but result ???
-added gromos
+Renamed mymetrics to myvalidation
+Renamed validation_cluster_internal.cluster_eval.pseudoF
+to CHscore
+density_cluster divided in deansity_peaks, dbscan and jarvis_patrick
+sources
