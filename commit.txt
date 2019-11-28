@@ -3,3 +3,4 @@ Renamed validation_cluster_internal.cluster_eval.pseudoF
 to CHscore
 density_cluster divided in deansity_peaks, dbscan and jarvis_patrick
 sources
+Added f(K) score to myvalidation and corresponding nb
