@@ -1,6 +1,2 @@
-Renamed mymetrics to myvalidation
-Renamed validation_cluster_internal.cluster_eval.pseudoF
-to CHscore
-density_cluster divided in deansity_peaks, dbscan and jarvis_patrick
-sources
-Added f(K) score to myvalidation and corresponding nb
+removed usr.c/swig (will use cython if ever needed)
+removed my_rmsd (redundant with quaternion_utils)
