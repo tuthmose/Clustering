@@ -251,21 +251,29 @@ class cluster_eval(object):
         # use true coordinate centers in CH instead
         # of nearest points (centroids)
         usec = False
+        Skm1 = 1.
+        Nd   = None
         for key, value in kwargs.items():
-            if key=="noise":
+            if key == "noise":
                 self.noise = value
-            if key=="method":
+            if key == "method":
                 method = value
-            if key=="inter":
+            if key == "inter":
                 inter = value
-            if key=="intra":
+            if key == "intra":
                 intra = value
-            if key=="use_centroid":
+            if key == "use_centroid":
                 usec = value
-            if key=="norm_noise":
+            if key == "norm_noise":
                 norm_noise = True
-            if key=="Skm1":
+            if key == "Skm1":
                 Skm1 = value
+            if key == "Nd":
+                Nd = value
+        if self.X is not None and Nd == None:
+            Nd = self.X.shape[1]
+        elif Nd == None and method == 'f_K':
+            raise ValueError("Need # dimensions for f_K")    
         #check kwds
         if method not in self.methods:
             raise NotImplementedError("no method %s in %s" \
@@ -312,7 +320,7 @@ class cluster_eval(object):
         if method == "CH":
             result = self.CHscore(filt_X,filt_clust,size,filt_D,usec)
         if method == "f_K":
-            result = self.f_K(filt_X,filt_clust,filt_D,usec,Skm1)
+            result = self.f_K(filt_X,filt_clust,filt_D,usec,Skm1,Nd)
         if self.noise=="ignore" and norm_noise:
             noise_const = (self.NData - nnoise)/self.NData
             result = result*noise_const
@@ -414,14 +422,12 @@ class cluster_eval(object):
         CHs = ( BSS/(self.N -1) ) / ( WSS/(self.NData - self.N) )
         return np.asarray((CHs, WSS))
     
-    def f_K(self,coords,clusters,dist,use_centroid=False,Skm1=0.):
+    def f_K(self,coords,clusters,dist,use_centroid,Skm1,Nd):
         """
         
         """
         #almost copied from 
         #https://datasciencelab.wordpress.com/2014/01/21/selection-of-k-in-k-means-clustering-reloaded/
-        if self.X is not None:
-            Nd = self.X.shape[1]
         thisk = np.unique(clusters).shape[0]
         #throw away recursive definition of a_k
         a_k = lambda k, Nd: 1. - 3./(4.*Nd) if k == 2 else a_k(k-1, Nd) + (1-a_k(k-1, Nd))/6.
