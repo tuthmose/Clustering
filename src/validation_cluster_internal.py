@@ -52,15 +52,15 @@ def core2centers(**kwargs):
     metric = "euclidean"
     clusters = False
     for key, value in kwargs.items():
-        if key is "clusters":
+        if key == "clusters":
             clusters = value
-        if key is "X":
+        if key == "X":
             X = value
-        if key is "D":
+        if key == "D":
             D = value
-        if key is "metric":
+        if key == "metric":
             metric = value
-        if key is "beta":
+        if key == "beta":
             beta = value
     if not "clusters":
         raise ValueError("Missing cluster list")
@@ -119,9 +119,9 @@ class cluster_eval(object):
         for (prop, default) in prop_defaults.items():
             setattr(self, prop, kwargs.get(prop, default))                
         #precomputed distance?
-        if self.metric is "precomputed" and self.D is None:
+        if self.metric == "precomputed" and self.D == None:
             raise ValueError("metric=precomputed but missing distance matrix")
-        elif self.metric is not "precomputed" and self.X is not None:
+        elif self.metric != "precomputed" and self.X == not None:
             self.D = squareform(pdist(self.X,metric=self.metric)) 
         return None
 
