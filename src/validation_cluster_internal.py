@@ -121,7 +121,7 @@ class cluster_eval(object):
         #precomputed distance?
         if self.metric == "precomputed" and not np.any(self.D): 
             raise ValueError("metric=precomputed but missing distance matrix")
-        elif self.metric != "precomputed" and self.X != None:
+        elif self.metric != "precomputed" and np.any(self.X):
             self.D = squareform(pdist(self.X,metric=self.metric)) 
         return None
 

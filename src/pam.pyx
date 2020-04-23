@@ -95,7 +95,7 @@ class PAM(KMedoids):
         take all pairs (i,h) \in U \times S
         compute cost of swapping i and h
         """
-        print("WARNING: still testing SWAP")
+        #print("WARNING: still testing SWAP")
         self.nswap = 0
         Tih = np.empty((self.N-self.K,self.K))
         Dj = np.empty((self.N-self.K,2))
@@ -117,16 +117,15 @@ class PAM(KMedoids):
             # try to swap i and h
             for ii,i in enumerate(S):
                 for hh,h in enumerate(U):
-                    if h != i:
-                        for jj,j in enumerate(U):
-                            if j != h:
-                                dji = cD[j,i]
-                                djh = cD[j,h]
-                                if cDj[j,0] > dji:
-                                    Kijh = cmin(cDj[jj,0] - djh,0)
-                                elif cDj[j,0] == dji:
-                                    Kijh = cmax(djh,cDj[jj,1]) - cDj[jj,0]
-                        cT[ii,hh] += Kijh
+                   for jj,j in enumerate(U):
+                       if j != h:
+                           dji = cD[j,i]
+                           djh = cD[j,h]
+                           if cDj[j,0] > dji:
+                               Kijh = cmin(djh - cDj[jj,0],0.)
+                           elif cDj[j,0] == dji:
+                               Kijh = cmin(djh,cDj[jj,1]) - cDj[jj,0]
+                   cT[ii,hh] += Kijh
             Tmin = np.amin(Tih)
             if Tmin < 0:
                 pmin  = np.where(Tih==Tmin)
