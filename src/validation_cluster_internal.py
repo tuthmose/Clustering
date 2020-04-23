@@ -119,9 +119,9 @@ class cluster_eval(object):
         for (prop, default) in prop_defaults.items():
             setattr(self, prop, kwargs.get(prop, default))                
         #precomputed distance?
-        if self.metric == "precomputed" and self.D == None:
+        if self.metric == "precomputed" and not np.any(self.D): 
             raise ValueError("metric=precomputed but missing distance matrix")
-        elif self.metric != "precomputed" and self.X == not None:
+        elif self.metric != "precomputed" and self.X != None:
             self.D = squareform(pdist(self.X,metric=self.metric)) 
         return None
 

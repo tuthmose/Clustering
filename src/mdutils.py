@@ -6,7 +6,7 @@
 # hexdump -v -e '376/4 "%06f "' -e '"\n"' rmsdm_hex.dat > rmsdm.dat
 #              no. of entries/ sizeof(one entry) format of each entry
 
-import mdtraj as md
+#import mdtraj as md
 import numpy as np
 import scipy.stats as st
 import scipy.spatial.distance as sd
