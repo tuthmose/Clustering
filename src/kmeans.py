@@ -273,7 +273,8 @@ class KMedoids(PartitionClustering):
         if self.W == None:
             cost = cost + np.sum(self.D[points,:][:,medoid])
         else:
-            cost = cost + np.sum(self.W[points]*self.D[points,:][:,medoid])/np.sum(self.W[points])
+            cost = cost + np.sum(self.W[points]*self.D[points,:][:,medoid])\
+                    /np.sum(self.W[points])
         return cost
     
     def assign(self,centers):

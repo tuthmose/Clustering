@@ -20,8 +20,6 @@ class PAM(KMedoids):
     Related Methods, edited by Y. Dodge, North-Holland, 405–416.
     From psudocode found in https://doi.org/10.1007/978-3-030-32047-8_16
     """
-    #use floats since coords from MD trajs is usually float
-    
     def do_clustering(self, X=None, D=None, W=None):
         """
         initialize and run main loop
@@ -29,7 +27,6 @@ class PAM(KMedoids):
         D(npoints,npoints) is the distance/dissimilarity (for PAM)
         W(npoints) are the weights
         """
-        print("WARNING: still testing this method")
         self.X = X
         self.D = D
         self.W = W
@@ -39,7 +36,10 @@ class PAM(KMedoids):
         medoids = self.SWAP(TD, medoids, non_medoids)
         self.medoids = medoids
         self.clusters = self.assign(medoids)
-        self.inertia  = self.calc_cost(self.clusters,medoids)
+        self.inertia  = 0.
+        for m in medoids:
+            points = np.where(self.clusters==m)[0]
+            self.inertia += self.calc_cost(points, m)
         return self.inertia, self.medoids
     
     @wraparound(False)  
@@ -83,7 +83,6 @@ class PAM(KMedoids):
             imax = np.argmax(gain)
             S.append(imax)
             cU[imax] = -1
-            print(S,imax,cU[imax])
             TD = TD - cG[imax]
         nU = [s for s in U if s !=-1 ]
         return TD, S, nU
@@ -96,6 +95,7 @@ class PAM(KMedoids):
         take all pairs (i,h) \in U \times S
         compute cost of swapping i and h
         """
+        print("WARNING: still testing SWAP")
         self.nswap = 0
         Tih = np.empty((self.N-self.K,self.K))
         Dj = np.empty((self.N-self.K,2))
@@ -128,13 +128,10 @@ class PAM(KMedoids):
                                     Kijh = cmax(djh,cDj[jj,1]) - cDj[jj,0]
                         cT[ii,hh] += Kijh
             Tmin = np.amin(Tih)
-            print(Tmin)
             if Tmin < 0:
                 pmin  = np.where(Tih==Tmin)
-                print(pmin)
                 iimin = pmin[0][0]
                 hhmin = pmin[1][0]
-                print(iimin, hhmin)
                 imin  = S[iimin]
                 hmin  = U[hhmin]
                 S[iimin] = hmin
@@ -145,7 +142,6 @@ class PAM(KMedoids):
             if nstep > self.niter:
                 break
             nstep += 1
-            print(nstep)
         self.nstep = nstep
         self.nswap = nswap
         return S
