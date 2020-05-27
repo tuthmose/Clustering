@@ -20,7 +20,7 @@ class PAM(KMedoids):
     Related Methods, edited by Y. Dodge, North-Holland, 405–416.
     From psudocode found in https://doi.org/10.1007/978-3-030-32047-8_16
     """
-    def do_clustering(self, X=None, D=None, W=None):
+    def do_clustering(self, X=None, D=None, W=None, doswap=True):
         """
         initialize and run main loop
         X(npoints,nfeatures) is the feature matrix
@@ -33,7 +33,8 @@ class PAM(KMedoids):
         self.init2()
         self.D = np.asarray(self.D,dtype='float')
         TD, medoids, non_medoids = self.BUILD()
-        medoids = self.SWAP(TD, medoids, non_medoids)
+        if doswap:
+            medoids = self.SWAP(TD, medoids, non_medoids)
         self.medoids = medoids
         self.clusters = self.assign(medoids)
         self.inertia  = 0.

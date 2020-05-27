@@ -10,8 +10,8 @@ from scipy.spatial.distance import cdist,pdist,squareform
 #   - kMeans
 #   - kMedians
 #   - kMedoids
-# from pam:
-# - PAM (cython serial version)
+#   from pam:
+#   - PAM (cython serial version)
 
 from kmeans import *
 from pam    import *

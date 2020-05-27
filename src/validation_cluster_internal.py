@@ -302,7 +302,7 @@ class cluster_eval(object):
         try: assert self.N > 1
         except AssertionError:
             print("Error :at least two custers are needed")
-            if method is "CH":
+            if method == "CH":
                 return (False,False)
             else:
                 return False
