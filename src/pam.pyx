@@ -20,7 +20,7 @@ class PAM(KMedoids):
     Related Methods, edited by Y. Dodge, North-Holland, 405–416.
     From psudocode found in https://doi.org/10.1007/978-3-030-32047-8_16
     """
-    def do_clustering(self, X=None, D=None, W=None, doswap=True):
+    def do_clustering(self, X=None, D=None, W=None, doswap=True, medbuild=False):
         """
         initialize and run main loop
         X(npoints,nfeatures) is the feature matrix
@@ -33,6 +33,13 @@ class PAM(KMedoids):
         self.init2()
         self.D = np.asarray(self.D,dtype='float')
         TD, medoids, non_medoids = self.BUILD()
+        if medbuild and doswap:
+            self.clusters = self.assign(medoids)
+            self.inertia  = 0.
+            for m in medoids:
+                points = np.where(self.clusters==m)[0]
+                self.inertia += self.calc_cost(points, m)
+            print("inertia and medoids b4 swap",self.inertia,medoids)
         if doswap:
             medoids = self.SWAP(TD, medoids, non_medoids)
         self.medoids = medoids
@@ -96,20 +103,22 @@ class PAM(KMedoids):
         take all pairs (i,h) \in U \times S
         compute cost of swapping i and h
         """
-        #print("WARNING: still testing SWAP")
         self.nswap = 0
-        Tih = np.empty((self.N-self.K,self.K))
         Dj = np.empty((self.N-self.K,2))
+        Tih = np.empty((self.N-self.K,self.K))
         #
         cdef int ii,jj,j,hh,h
         cdef int iimin,hhmin,imin,hmin
         cdef int nstep=0, nswap=0
-        cdef double [:,:] cD = self.D
         cdef double [:,:] cT  = Tih
+        cdef double [:,:] cD = self.D
         cdef double [:,:] cDj = Dj
         cdef double dji, djh, Kijh
         while True:
-            Tih = np.empty((self.N-self.K,self.K))
+            #Tih = np.empty((self.N-self.K,self.K))
+            #for jj in range(self.N-self.K):
+            #    for j in range(self.K):
+            #        cT[jj,j] = 0
             #Dj, Ej
             for jj,j in enumerate(U):
                 dd = self.D[j,:][S]

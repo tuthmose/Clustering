@@ -1,2 +1,3 @@
-removed usr.c/swig (will use cython if ever needed)
-removed my_rmsd (redundant with quaternion_utils)
+Changed setupy to work on zama. But now
+it must be executed as root.
+Will have to fix it

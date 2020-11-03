@@ -1,10 +1,11 @@
 CFLAGS = $(shell python-config --cflags)
-CFLAGS += "-O3 -march=native -mtune=native -ftree-vectorize"
+CFLAGS += -Ofast -march=native -mtune=native -ftree-vectorize
 LDFLAGS = $(shell python-config --ldflags)
-LDFLAGS += "-fopenmp"
+LDFLAGS += -fopenmp
+CPPFLAGS = -I/usr/include/python3.8/
 
 all: cython
-	$(CC) $(CFLAGS) $(LDFLAGS) -o pam *.c
+	$(CC) $(CFLAGS) $(LDFLAGS) $(CPPFLAGS) -o pam *.c
 
 cython:
 	cythonize pam.pyx

@@ -430,6 +430,8 @@ class cluster_eval(object):
         #https://datasciencelab.wordpress.com/2014/01/21/selection-of-k-in-k-means-clustering-reloaded/
         thisk = np.unique(clusters).shape[0]
         #throw away recursive definition of a_k
+        assert thisk  >= 2
+        assert Nd >= 2
         a_k = lambda k, Nd: 1. - 3./(4.*Nd) if k == 2 else a_k(k-1, Nd) + (1-a_k(k-1, Nd))/6.
         ##
         Sk = 0.
@@ -440,7 +442,7 @@ class cluster_eval(object):
                 Sk += np.sum(cdist(coord_c,np.expand_dims(mu_c,axis=0),metric=self.metric)**2)
         else:
             for c in self.centroids:
-                Sk += np.sum(dist[clusters==c,:][:,c]**2)
+                Sk += np.sum(dist[clusters==c,:][:,c])
         #
         if thisk == 1:
             fs = 1
