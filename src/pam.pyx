@@ -1,3 +1,5 @@
+#cython: language_level=3
+
 import numpy as np
 import random
 import sys
@@ -31,7 +33,6 @@ class PAM(KMedoids):
         self.D = D
         self.W = W
         self.init2()
-        self.D = np.asarray(self.D,dtype='float')
         TD, medoids, non_medoids = self.BUILD()
         if medbuild and doswap:
             self.clusters = self.assign(medoids)
@@ -39,7 +40,8 @@ class PAM(KMedoids):
             for m in medoids:
                 points = np.where(self.clusters==m)[0]
                 self.inertia += self.calc_cost(points, m)
-            print("inertia and medoids b4 swap",self.inertia,medoids)
+            if self.debug:
+                print("inertia and medoids b4 swap",self.inertia, medoids)
         if doswap:
             medoids = self.SWAP(TD, medoids, non_medoids)
         self.medoids = medoids
@@ -103,54 +105,48 @@ class PAM(KMedoids):
         take all pairs (i,h) \in U \times S
         compute cost of swapping i and h
         """
-        self.nswap = 0
-        Dj = np.empty((self.N-self.K,2))
-        Tih = np.empty((self.N-self.K,self.K))
-        #
-        cdef int ii,jj,j,hh,h
-        cdef int iimin,hhmin,imin,hmin
-        cdef int nstep=0, nswap=0
-        cdef double [:,:] cT  = Tih
+        # constants and index variables
+        cdef int i, j, h, si, uj, uh
+        cdef int iimin, hhmin, imin, hmin
+        cdef int nswap=0, L=self.N - self.K
+        cdef double Kijh, dd, dmax
+        dmax = np.max(self.D)
+        # arrays and memoryviews
+        DEj = np.empty((L, 2))
+        Tih = np.empty((L, self.K))
         cdef double [:,:] cD = self.D
-        cdef double [:,:] cDj = Dj
-        cdef double dji, djh, Kijh
+        cdef double [:,:] cDEj 
+        cdef double [:,:] cTih 
+        # begin swap phase
         while True:
-            #Tih = np.empty((self.N-self.K,self.K))
-            #for jj in range(self.N-self.K):
-            #    for j in range(self.K):
-            #        cT[jj,j] = 0
-            #Dj, Ej
-            for jj,j in enumerate(U):
-                dd = self.D[j,:][S]
-                Dj[jj,0] = np.sort(dd)[0]
-                Dj[jj,1] = np.sort(dd)[1]
+            DEj = np.sort(self.D[U, :][:, S])[:,:2]
+            Tih = np.zeros((L, self.K))
+            cTih = Tih
+            cDEj = DEj
             # try to swap i and h
-            for ii,i in enumerate(S):
-                for hh,h in enumerate(U):
-                   for jj,j in enumerate(U):
-                       if j != h:
-                           dji = cD[j,i]
-                           djh = cD[j,h]
-                           if cDj[j,0] > dji:
-                               Kijh = cmin(djh - cDj[jj,0],0.)
-                           elif cDj[j,0] == dji:
-                               Kijh = cmin(djh,cDj[jj,1]) - cDj[jj,0]
-                   cT[ii,hh] += Kijh
+            for i in range(self.K):
+                si = S[i]
+                for h in range(L):
+                    uh = U[h]
+                    for j in range(L):
+                        uj = U[j]
+                        if uj != uh:
+                            if cD[uj, si] > cDEj[j, 0]:
+                                Kijh = cmin(cD[uj, uh] - cDEj[j, 0], 0.)
+                            elif cD[uj, si] == cDEj[j, 0]:
+                                Kijh = cmin(cD[uj, uh], cDEj[j, 1]) - cDEj[j, 0]
+                            cTih[h, i] += Kijh
             Tmin = np.amin(Tih)
             if Tmin < 0:
                 pmin  = np.where(Tih==Tmin)
-                iimin = pmin[0][0]
-                hhmin = pmin[1][0]
+                hhmin = pmin[0][0]
+                iimin = pmin[1][0]
                 imin  = S[iimin]
                 hmin  = U[hhmin]
                 S[iimin] = hmin
                 U[hhmin] = imin
                 nswap += 1
-            elif not np.any(Tih) <= 0:
+            else:
                 break
-            if nstep > self.niter:
-                break
-            nstep += 1
-        self.nstep = nstep
         self.nswap = nswap
         return S

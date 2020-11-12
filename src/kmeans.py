@@ -11,7 +11,7 @@ from scipy.spatial.distance import cdist,pdist,squareform
 # - KMedians
 
 class PartitionClustering:
-    def __init__(self,**kwargs):
+    def __init__(self, **kwargs):
         """
         metric is the type of distance used
         boot is the initialization method (random|kmeans++|input array)
@@ -29,7 +29,8 @@ class PartitionClustering:
             "conv"      : 1e-5,
             "nrun"      : 10,
             "K"         : None,
-            "random_state": None
+            "random_state": None,
+            "debug"     : False
         }
         for (prop, default) in prop_defaults.items():
             setattr(self, prop, kwargs.get(prop, default))         
