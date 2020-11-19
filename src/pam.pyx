@@ -22,7 +22,7 @@ class PAM(KMedoids):
     Related Methods, edited by Y. Dodge, North-Holland, 405–416.
     From pseudocode found in https://doi.org/10.1007/978-3-030-32047-8_16
     """
-    def do_clustering(self, X=None, D=None, W=None, doswap=True, fixK=False):
+    def do_clustering(self, X=None, D=None, W=None, doswap=True):
         """
         initialize and run main loop
         X(npoints,nfeatures) is the feature matrix
@@ -36,12 +36,6 @@ class PAM(KMedoids):
         if self.N <= self.K:
             raise ValueError("N<K does not make sense")
         medoids, non_medoids = self.BUILD()
-        m_uniq = np.unique(medoids)
-        n_uniq = len(m_uniq)
-        if n_uniq < self.K:
-            print("WARNING: required medoids ",self.K," obtained medoids ",n_uniq)
-            if fixK:
-                raise ValueError("not enough medoids!")
         if self.debug:
             self.clusters = self.assign(medoids)
             self.inertia  = 0.
@@ -69,27 +63,28 @@ class PAM(KMedoids):
         U \intersection S  = 0
         """
         cdef double [:,:] cD = self.D
-        dmax = np.max(self.D)
-        #
+        cdef float dmax = np.max(self.D)
+        cdef double [:] cG
+        cdef int I, i, j, k, imax, M
+        cdef float Dj 
         S = list()
         #object with global minimum distance and distances from it
         s0 = np.argmin(np.sum(self.D,axis=1))
         points = list(range(self.N))
         S.append(s0)
-        cdef int I, i, j, k, imax
-        cdef float Dj = dmax
-        gain = np.zeros(self.N)
-        #
         while len(S) < self.K:
             U = list(set(points).difference(S))
-            gain = np.zeros(len(U))
-            for I, i in enumerate(U):
+            M = self.N - len(S)
+            gain = np.zeros(M)
+            cG = gain
+            for I in range(0,M,1):
+                i = U[I]
                 for j in U:
                     if i != j:
                         Dj = dmax
                         for k in S:
                             Dj = cmin(Dj, cD[k,j])
-                        gain[I] += cmax(Dj - cD[i,j], 0.)
+                        cG[I] += cmax(Dj - cD[i,j], 0.)
             # take new centroid
             imax = U[np.argmax(gain)]
             S.append(imax)
@@ -122,11 +117,11 @@ class PAM(KMedoids):
             cTih = Tih
             cDEj = DEj
             # try to swap i and h
-            for i in range(self.K):
+            for i in range(0, self.K, 1):
                 si = S[i]
-                for h in range(L):
+                for h in range(0, L, 1):
                     uh = U[h]
-                    for j in range(L):
+                    for j in range(0, L, 1):
                         uj = U[j]
                         if uj != uh:
                             if cD[uj, si] > cDEj[j, 0]:
