@@ -157,7 +157,7 @@ class KMeans(PartitionClustering):
             sse = sse + np.sum(np.sum(dist[clusters==i,i]**2,axis=0))                        
         return sse,centers    
     
-    def assign(self,centers):
+    def assign(self, centers):
         """
         assign points to clusters and calculate 
         Sum of Squared Errors
@@ -165,7 +165,7 @@ class KMeans(PartitionClustering):
         clusters = np.empty(self.N,dtype='int')
         #https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cdist.html
         # calcola le distanze di tutti i punti da tutti i centroidi
-        dist = cdist(self.X,centers,metric=self.metric)
+        dist = cdist(self.X,centers, metric=self.metric)
         #per ogni punto cerca il centroide più vicino
         for pj in range(self.N):
             nearest = np.argmin(dist[pj])

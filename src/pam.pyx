@@ -20,9 +20,9 @@ class PAM(KMedoids):
     see Kaufman, L. and Rousseeuw, P.J. (1987), Clustering by means of Medoids,
     in Statistical Data Analysis Based on the {\displaystyle L{1}}L{1}–Norm and 
     Related Methods, edited by Y. Dodge, North-Holland, 405–416.
-    From psudocode found in https://doi.org/10.1007/978-3-030-32047-8_16
+    From pseudocode found in https://doi.org/10.1007/978-3-030-32047-8_16
     """
-    def do_clustering(self, X=None, D=None, W=None, doswap=True, medbuild=False):
+    def do_clustering(self, X=None, D=None, W=None, doswap=True, fixK=False):
         """
         initialize and run main loop
         X(npoints,nfeatures) is the feature matrix
@@ -33,17 +33,24 @@ class PAM(KMedoids):
         self.D = D
         self.W = W
         self.init2()
-        TD, medoids, non_medoids = self.BUILD()
-        if medbuild and doswap:
+        if self.N <= self.K:
+            raise ValueError("N<K does not make sense")
+        medoids, non_medoids = self.BUILD()
+        m_uniq = np.unique(medoids)
+        n_uniq = len(m_uniq)
+        if n_uniq < self.K:
+            print("WARNING: required medoids ",self.K," obtained medoids ",n_uniq)
+            if fixK:
+                raise ValueError("not enough medoids!")
+        if self.debug:
             self.clusters = self.assign(medoids)
             self.inertia  = 0.
             for m in medoids:
                 points = np.where(self.clusters==m)[0]
                 self.inertia += self.calc_cost(points, m)
-            if self.debug:
-                print("inertia and medoids b4 swap",self.inertia, medoids)
+            print("inertia and medoids b4 swap",self.inertia, medoids)
         if doswap:
-            medoids = self.SWAP(TD, medoids, non_medoids)
+            medoids = self.SWAP(medoids, non_medoids)
         self.medoids = medoids
         self.clusters = self.assign(medoids)
         self.inertia  = 0.
@@ -67,39 +74,30 @@ class PAM(KMedoids):
         S = list()
         #object with global minimum distance and distances from it
         s0 = np.argmin(np.sum(self.D,axis=1))
-        TD = np.min(np.sum(self.D,axis=1))
+        points = list(range(self.N))
         S.append(s0)
-        U = np.arange(0,self.N,dtype='int32')
-        U[s0] = -1
-        cdef int [:] cU = U
-        cdef int i, j, k, imax
+        cdef int I, i, j, k, imax
         cdef float Dj = dmax
-        cdef float gi
         gain = np.zeros(self.N)
-        cdef double [:] cG = gain
         #
         while len(S) < self.K:
-            for i in range(self.N):
-                if cU[i] != -1:
-                    g_i = 0.
-                    for j in range(self.N):
-                        if i != j and cU[j] != -1:
-                            Dj = dmax
-                            for k in S:
-                                Dj = cmin(Dj,cD[k,j])
-                            g_i += cmax(Dj-cD[i,j],0.)
-                cG[i] = g_i            
+            U = list(set(points).difference(S))
+            gain = np.zeros(len(U))
+            for I, i in enumerate(U):
+                for j in U:
+                    if i != j:
+                        Dj = dmax
+                        for k in S:
+                            Dj = cmin(Dj, cD[k,j])
+                        gain[I] += cmax(Dj - cD[i,j], 0.)
             # take new centroid
-            imax = np.argmax(gain)
+            imax = U[np.argmax(gain)]
             S.append(imax)
-            cU[imax] = -1
-            TD = TD - cG[imax]
-        nU = [s for s in U if s !=-1 ]
-        return TD, S, nU
+        return S, U
         
     @wraparound(False)  
     @boundscheck(False) 
-    def SWAP(self,TD, S, U):
+    def SWAP(self, S, U):
         """
         SWAP phase
         take all pairs (i,h) \in U \times S
