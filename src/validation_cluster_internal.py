@@ -21,7 +21,7 @@ from scipy.special import binom
 # (e.g. WSS for a cluster) is done for different
 # criteria. This could be optimized.
           
-def find_centroid(D,beta=1.,mask=None):
+def find_centroid(D, beta=1., mask=None):
     """
     find centroid on input distance matrix using similarity scores:
     s_ij = e^-beta rmsd_ij / sigma(rmsd)

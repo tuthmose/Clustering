@@ -6,8 +6,8 @@
 `validation/` includes notes about clustering validation
 
 Algorithms included were selected because:
-- (i)  they were not present at the time in scikit-learn or extras (but perhaps they are now) e. g. Density Peaks or SNN
-- (ii) self teaching
+- they were not present at the time in scikit-learn or extras (but perhaps they are now) e. g. Density Peaks or SNN
+- self teaching
 
 all clustering algorithms are imported by `myclusters.py`
 all validation ones are imported by `mymetrics.py`
