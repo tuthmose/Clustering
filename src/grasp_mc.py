@@ -3,52 +3,15 @@ from copy import deepcopy
 import numpy as np
 import random
 import scipy as sp
-
-def expD_similarity(labels, **kwargs):
-    """
-    s_{ij} = e^{ \frac{-beta d_{ij}} {\sigma}}
-    S = \sum_{ij} s_{ij}
-    """
-    beta = float(kwargs.get('beta'))
-    D = kwargs.get('D')
-    return np.sum(np.exp(-beta*D[labels,:][:,labels] / np.std(D[labels,:][:,labels])))
-
-def gau_similarity(labels, **kwargs):
-    """
-    s_{ij} = e^{ \frac{-beta d_{ij}} {\sigma}}
-    S = \sum_{ij} s_{ij}
-    """
-    sigma = float(kwargs.get('sigma'))
-    D = kwargs.get('D')
-    return np.sum(np.exp(-D[labels,:][:,labels]**2 / 2.*sigma**2))
-
-def gau_kernel(labels, **kwargs):
-    """
-    s_{ij} = e^{ \frac{-beta d_{ij}} {\sigma}}
-    S = \sum_{ij} s_{ij}
-    """
-    sigma = float(kwargs.get('sigma'))
-    D = kwargs.get('D')    
-    return np.exp(-D[labels,:][:,labels]**2 / 2.*sigma**2)
-
-def max_var(labels,  **kwargs):
-    """
-    The similarity is the inverse of the sum of variances along dimensions
-    (columns) of the data set. 
-    S = 1. / sum_i^ndim sum_j^NTs \frac{x_{ij}^2}{NTs} -\mu_i^2
-    """
-    X = kwargs.get('x')    
-    DS = np.sum([np.var(X[labels], axis=0) for i in range(X.shape[1])])
-    return 1./DS
-
-def mindist(labels,  **kwargs):
-    """
-    simply minimize the inverse sum of the distance matrix with the given metric
-    """
-    D = kwargs.get('D')    
-    DS = np.sum(D[labels,:][:,labels])
-    return DS
                
+def sumdist(labels, **kwargs):
+    """
+    this is just the inverse of the sum of distances
+    """
+    D = kwargs.get('D')
+    DT = np.sum(D[:,labels][labels,:])
+    return 1.0/DT
+                
 class simpleGRASP:
     
     def __init__(self, **kwargs):
@@ -95,10 +58,20 @@ class simpleGRASP:
         # check input
         assert isinstance(self.n_iter, int)
         assert isinstance(self.n_local, int)
-        assert isinstance(self.n_ini, int)
         assert isinstance(self.temp, float)
+        if isinstance(self.n_ini, int):
+            self.restart = False
+        elif isinstance(self.n_ini, list):
+            self.restart = True
+        else:
+            raise ValueError("n_ini is an int or a label list")
+            
         assert self.alpha >= 0. and self.alpha <= 1.
         assert self.c_rate > 0. and self.c_rate <= 1.
+        if self.alpha == 0:
+            print("--- alpha=0 is a greedy run w/o randomness in the RCL")
+        
+        # score and transformation kernel
         assert self.score is not None
         if self.skwds is not None:
             mykwargs = self.skwds.split()
@@ -119,7 +92,7 @@ class simpleGRASP:
                 kkwds[kv[0]] = kv[1]
             self.kkwds = kkwds
         else:
-            self.kkwds = dict()            
+            self.kkwds = dict()
         return None
     
     def run(self, X, N_sel=0.05):
@@ -137,7 +110,12 @@ class simpleGRASP:
         self.rng = np.random.default_rng(self.seed)
         self.N_sel = int(N_sel * self.X.shape[0])
         self.n_neigh = int(self.n_neigh * self.X.shape[0])
-        assert self.n_ini < self.N_sel
+        if self.restart:
+            print(self.N_sel,len(self.n_ini))
+            assert len(self.n_ini) == self.N_sel
+        else:
+            assert self.n_ini < self.N_sel
+            
         self.all_labels = set(list(range(self.X.shape[0])))
         best_score  = False
         best_labels = None
@@ -180,17 +158,13 @@ class simpleGRASP:
         """
         candidates = list(self.all_labels.difference(solution))
         RCL = list()
-        # gain = list()
-        #for c in candidates:
-        #    tmp = solution + [c]
-        #    print(tmp)
-        #    gain.append(self.score(tmp, self.X, self.D))
         gain = [self.score(solution + [c], **self.skwds) for c in candidates]
         v_min = np.min(gain)
         v_max = np.max(gain)
+        #print(v_min,v_max, solution)
         for i, g in enumerate(gain):
             if g >= v_min and g <= v_min + self.alpha*(v_max - v_min):
-                RCL.append(i)        
+                RCL.append(i)
         return RCL
 
     def construction(self, labels):
@@ -199,7 +173,7 @@ class simpleGRASP:
         element from the RCL for the needed number of elements
         """
         if len(labels) == self.N_sel:
-            M = 0
+            M = len(labels)
         else:
             M = len(labels)
         build_labels = [i for i in labels]
@@ -248,7 +222,10 @@ class simpleGRASP:
         pick n_ini elements w/o repetition to seed the solution
         """
         #labels = self.rng.integers(0, high=self.X.shape[0], size=self.n_ini, endpoint=False)
-        dj = np.sum(self.D, axis=1)
-        labels = np.argsort(dj)[:self.n_ini]
+        if self.restart:
+            labels = self.n_ini
+        else:
+            dj = np.sum(self.D, axis=1)
+            labels = np.argsort(dj)[:self.n_ini]
         return labels        
         

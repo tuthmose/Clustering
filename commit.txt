@@ -1,3 +1,2 @@
-Setup.py fixed.
-pam.pyx fixed to work with Python 3
-PAM.SWAP fixed
+Added grasp_mc. The RCL gives unsatisfactory results
+must be checked wth alpha=1.
