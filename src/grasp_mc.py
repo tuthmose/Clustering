@@ -9,7 +9,7 @@ def sumdist(labels, **kwargs):
     this is just the inverse of the sum of distances
     """
     D = kwargs.get('D')
-    DT = np.sum(D[:,labels][labels,:])
+    DT = np.sum(D[:,labels][:,:])
     return 1.0/DT
 
 def gauk(labels, **kwargs):
@@ -121,6 +121,7 @@ class simpleGRASP:
             assert len(self.n_ini) == self.N_sel
         else:
             assert self.n_ini < self.N_sel
+        self.N_max = 2 * self.N_sel
             
         self.all_labels = set(list(range(self.X.shape[0])))
         best_score  = False
@@ -170,7 +171,13 @@ class simpleGRASP:
         v_max = np.max(gain)
         for i, g in enumerate(gain):
             if g >= v_min and g <= v_min + self.alpha*(v_max - v_min):
-                RCL.append(i)
+                if self.alpha > 0:
+                    RCL.append((i, g))
+                else:
+                    RCL.append(i)
+        if self.alpha > 0 :
+            RCL = sorted(RCL, key=lambda cand: cand[1])
+            RCL = [c[0] for c in RCL][:self.N_max]
         return RCL
 
     def construction(self, labels):
@@ -180,7 +187,7 @@ class simpleGRASP:
         """
         if isinstance(labels, int):
             labels = [labels]
-        for i in range(self.N_sel):
+        for i in range(self.N_sel - self.n_ini):
             RCL = self.build_RCL(labels)
             selected = np.random.choice(RCL)
             labels.append(selected)
