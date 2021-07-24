@@ -46,7 +46,6 @@ class simpleGRASP:
             'n_iter'    : 100,
             'n_local'   : 100,
             'temp'      : 500.,
-            'n_neigh'   : 0.001,
             'boltzmann' : 1.,
             'c_rate'    : 0.99,
             'alpha'     : 0.75,
@@ -114,14 +113,12 @@ class simpleGRASP:
             assert isinstance(self.seed,int)
         self.rng = np.random.default_rng(self.seed)
         self.N_sel = int(N_sel * self.X.shape[0])
-        self.n_neigh = int(self.n_neigh * self.X.shape[0])
-        print(self.n_neigh)
         if self.restart:
             print(self.N_sel,len(self.n_ini))
             assert len(self.n_ini) == self.N_sel
         else:
             assert self.n_ini < self.N_sel
-        self.N_max = 2 * self.N_sel
+        self.N_max = 4 * self.N_sel
             
         self.all_labels = set(list(range(self.X.shape[0])))
         best_score  = False
@@ -140,13 +137,13 @@ class simpleGRASP:
         # main loop
         for i in range(self.n_iter):
             init_labels = self.init_solution()
-            if self.verbose >1:
-                print("building",i)
             build_score, build_labels = self.construction(init_labels)
+            if self.verbose >1:
+                print("building", i, build_score)            
             if self.n_local > 0:
-                if self.verbose > 1:
-                    print("local optimization",i)
                 opt_score, opt_labels = self.local_search(build_score, build_labels)
+                if self.verbose > 1:
+                    print("local optimization", i, opt_score)                
             elif self.n_local == 0:
                 opt_score  = build_score                
                 opt_labels = build_labels
@@ -177,7 +174,7 @@ class simpleGRASP:
                     RCL.append(i)
         if self.alpha > 0 :
             RCL = sorted(RCL, key=lambda cand: cand[1])
-            RCL = [c[0] for c in RCL][:self.N_max]
+            RCL = [c[0] for c in RCL]
         return RCL
 
     def construction(self, labels):
@@ -189,41 +186,39 @@ class simpleGRASP:
             labels = [labels]
         for i in range(self.N_sel - self.n_ini):
             RCL = self.build_RCL(labels)
-            selected = np.random.choice(RCL)
+            selected = np.random.choice(RCL, replace=False)
             labels.append(selected)
         score = self.score(labels, **self.skwds)
-        print(score)
         return score, labels
 
     def local_search(self, build_score, build_labels):
         """
-        select a random element in the neighbourhood 
-        of a solution and accept if there is gain
-        or limited loss (SA like)
-        """          
-        # do SA
-        current_labels = deepcopy(build_labels)
-        current_score  = build_score
-        for l, label in enumerate(current_labels):
-            temp_labels = deepcopy(current_labels)
-            current_temp   = self.temp
-            for it in range(self.n_local):
-                neighs = np.argsort(self.D[l])[:self.n_neigh]
-                swap = np.random.choice(neighs)
-                temp_labels[l] = swap
-                temp_score = self.score(temp_labels, **self.skwds)
-                if temp_score < current_score:
-                    current_labels[l] = swap
-                    current_score = temp_score
-                else:
-                    Ediff   = -(temp_score - current_score)/ (self.boltzmann * current_temp)
-                    Bweight = np.exp(-Ediff)
-                    coin = np.random.rand()
-                    if Bweight > coin:
-                        current_labels[l] = swap
-                        current_score = temp_score
-                current_temp = self.c_rate * current_temp
-        return current_score, current_labels
+        perform a linear search on the N_max nearest neighbours 
+        of each node not nearer to another node
+        """
+        opt_labels = deepcopy(build_labels)
+        print(build_labels)
+        # assign elements to nearest node
+        N = self.X.shape[0]
+        nodes = np.empty(N, dtype='int')
+        for pj in range(N):
+            nearest = np.argmin(self.D[pj,opt_labels])
+            nodes[pj] = opt_labels[nearest]
+        # do the LS
+        temp_labels = deepcopy(opt_labels)
+        for i in range(self.N_sel):
+            # order the elements
+            dd = self.D[i, nodes==i]
+            NN = np.argsort(dd)[1:self.N_max+1][::-1]            
+            base_gain = self.score(opt_labels, **self.skwds)
+            for j in NN:
+                if j not in build_labels:
+                    temp_labels[i] = j
+                    gain = self.score(temp_labels, **self.skwds)
+                    if gain < base_gain:
+                        opt_labels[i] = j
+        opt_score = self.score(opt_labels, **self.skwds)
+        return opt_score, opt_labels
 
     def init_solution(self):
         """
@@ -233,6 +228,6 @@ class simpleGRASP:
         if self.restart:
             labels = self.n_ini
         else:
-            labels = np.random.choice(self.n_ini)
+            labels = np.random.choice(self.n_ini, replace=False)
         return labels        
         
