@@ -11,6 +11,11 @@ def sumdist(labels, **kwargs):
     D = kwargs.get('D')
     DT = np.sum(D[:,labels][labels,:])
     return 1.0/DT
+
+def gauk(labels, **kwargs):
+    D = kwargs.get('D')
+    sigma = float(kwargs.get('sigma'))
+    return np.exp( (-D*D)/(2.*sigma*sigma) )
                 
 class simpleGRASP:
     
@@ -41,7 +46,7 @@ class simpleGRASP:
             'n_iter'    : 100,
             'n_local'   : 100,
             'temp'      : 500.,
-            'n_neigh'   : 0.01,
+            'n_neigh'   : 0.001,
             'boltzmann' : 1.,
             'c_rate'    : 0.99,
             'alpha'     : 0.75,
@@ -110,6 +115,7 @@ class simpleGRASP:
         self.rng = np.random.default_rng(self.seed)
         self.N_sel = int(N_sel * self.X.shape[0])
         self.n_neigh = int(self.n_neigh * self.X.shape[0])
+        print(self.n_neigh)
         if self.restart:
             print(self.N_sel,len(self.n_ini))
             assert len(self.n_ini) == self.N_sel
@@ -132,6 +138,7 @@ class simpleGRASP:
         
         # main loop
         for i in range(self.n_iter):
+            init_labels = self.init_solution()
             if self.verbose >1:
                 print("building",i)
             build_score, build_labels = self.construction(init_labels)
@@ -161,7 +168,6 @@ class simpleGRASP:
         gain = [self.score(solution + [c], **self.skwds) for c in candidates]
         v_min = np.min(gain)
         v_max = np.max(gain)
-        #print(v_min,v_max, solution)
         for i, g in enumerate(gain):
             if g >= v_min and g <= v_min + self.alpha*(v_max - v_min):
                 RCL.append(i)
@@ -172,20 +178,15 @@ class simpleGRASP:
         Build a candidate solution selecting a random
         element from the RCL for the needed number of elements
         """
-        if len(labels) == self.N_sel:
-            M = len(labels)
-        else:
-            M = len(labels)
-        build_labels = [i for i in labels]
-        for i in range(self.N_sel - M):
-            #if i % 10 == 0: print(i)
-            # build RCL
-            RCL = self.build_RCL(build_labels)
-            # pick a random element from RCL
+        if isinstance(labels, int):
+            labels = [labels]
+        for i in range(self.N_sel):
+            RCL = self.build_RCL(labels)
             selected = np.random.choice(RCL)
-            build_labels.append(selected)
-        build_score = self.score(build_labels, **self.skwds)
-        return build_score, build_labels
+            labels.append(selected)
+        score = self.score(labels, **self.skwds)
+        print(score)
+        return score, labels
 
     def local_search(self, build_score, build_labels):
         """
@@ -208,7 +209,7 @@ class simpleGRASP:
                     current_labels[l] = swap
                     current_score = temp_score
                 else:
-                    Ediff   = (temp_score - current_score)/ (self.boltzmann * current_temp)
+                    Ediff   = -(temp_score - current_score)/ (self.boltzmann * current_temp)
                     Bweight = np.exp(-Ediff)
                     coin = np.random.rand()
                     if Bweight > coin:
@@ -225,7 +226,6 @@ class simpleGRASP:
         if self.restart:
             labels = self.n_ini
         else:
-            dj = np.sum(self.D, axis=1)
-            labels = np.argsort(dj)[:self.n_ini]
+            labels = np.random.choice(self.n_ini)
         return labels        
         
