@@ -27,10 +27,6 @@ class simpleGRASP:
         - n_ini:    number of seed elements b4 construction (1)
         - n_iter:   number of iterations (100)
         - do_local: do a linear search in the neighbourhood of each point after construction
-        - temp:     temperature for simulated annealing local search (500)
-        - n_neigh:   number of neighbours to consider for simulated annealing (0.01)
-        - boltzmann:
-        - c_rate:   cooling rate for SA in (0,1] (0.995)
         - alpha:    greedyness factor in [0,1] (0.75)
         - verbose:  verbosity level (1)
         - metric:   metric of distance between data points (euclidean)
@@ -45,9 +41,6 @@ class simpleGRASP:
             'n_ini'     : 1,
             'n_iter'    : 100,
             'do_local'  : False,
-            'temp'      : 500.,
-            'boltzmann' : 1.,
-            'c_rate'    : 0.99,
             'alpha'     : 0.75,
             'verbose'   : 1,
             'metric'    : 'euclidean',
@@ -110,7 +103,7 @@ class simpleGRASP:
         - X:     input data
         - N_sel: fraction of needed points
         """
-        print("-- Starting GRASP")
+        print("-- Starting GRASP with ",self.N_sel," points")
         #check input
         assert isinstance(X, np.ndarray)
         self.X = X
@@ -120,7 +113,6 @@ class simpleGRASP:
             assert len(self.n_ini) == self.N_sel
         else:
             assert self.n_ini < self.N_sel
-        self.N_max = 4 * self.N_sel
             
         self.all_labels = set(list(range(self.X.shape[0])))
         best_score  = False
@@ -193,42 +185,35 @@ class simpleGRASP:
 
     def local_search(self, build_score, build_labels):
         """
-        perform a linear search on the N_max nearest neighbours 
+        perform a linear search on the "Voronoi cell" (if not empty)
         of each node not nearer to another node
         """
         opt_labels = deepcopy(build_labels)
         # assign elements to nearest node
         N = self.X.shape[0]
         nodes = -np.ones(N, dtype='int')
-        D = sp.spatial.distance.squareform(sp.spatial.distance.pdist(self.X))
-        #for pj in range(N):
-        #    nearest = np.argmin(self.D[pj,opt_labels])
-        #    nodes[pj] = opt_labels[nearest]
-        #print(set(nodes))
-        print(opt_labels)
+        for o in opt_labels:
+            nodes[o] = o
         points = tuple(set(np.arange(N, dtype='int')).difference(opt_labels))
         for pk in opt_labels:
             Pj = tuple(set(opt_labels).difference([pk]))
-            oD = np.min(D[Pj, :][:, points])
-            print(oD)
-            nD = np.where(D[pk] <= oD)
-            print(nD, D[pk,pk], D[pk,Pj])
+            oD = np.min(self.D[Pj, :][:, points])
+            nD = np.where(self.D[pk,points] <= oD)
             nodes[nD[0]] = o
-            raise ValueError
-        print(set(nodes), opt_labels, self.D[:, diff].shape)
         # do the LS
-        temp_labels = deepcopy(opt_labels)
-        for i in range(self.N_sel):
-            # order the elements
-            dd = self.D[i, nodes==i]
-            NN = np.argsort(dd)[1:][::-1]
-            base_gain = self.score(opt_labels, **self.skwds)
-            for j in NN:
-                if j not in opt_labels:
-                    temp_labels[i] = j
-                    gain = self.score(temp_labels, **self.skwds)
-                    if gain < base_gain:
-                        opt_labels[i] = j
+        for k, pk in enumerate(opt_labels):
+            if len(nodes[nodes == pk]) > 1:
+                temp_labels = deepcopy(opt_labels)
+                # order the elements
+                dd = self.D[k, nodes==pk]
+                NN = np.argsort(dd)[1:][::-1]
+                base_gain = self.score(opt_labels, **self.skwds)
+                for j in NN:
+                    if j not in opt_labels:
+                        temp_labels[k] = j
+                        gain = self.score(temp_labels, **self.skwds)
+                        if gain < base_gain:
+                            opt_labels[k] = j
         opt_score = self.score(opt_labels, **self.skwds)
         return opt_score, opt_labels
 
