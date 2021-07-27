@@ -11,8 +11,14 @@ from Cython.Build import cythonize
 os.environ['CFLAGS'] = '-Wall -std=c99 -O3 -march=native -mtune=native -ftree-vectorize'
 os.environ['LDFLAGS'] = '-fopenmp -lm'
 
+extensions = [
+    Extension("pam",["pam.pyx"],
+        #include_dirs=[...],
+        #libraries=[...],
+        #library_dirs=[...],
+        ),
+    Extension("grasp",["grasp.pyx"])]
+
 setup(
-    ext_modules=cythonize(Extension(
-        name="pam",
-        sources = ["pam.pyx"])
-))
+    ext_modules=cythonize(extensions),
+    )
