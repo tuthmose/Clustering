@@ -9,13 +9,13 @@ def sumdist(labels, **kwargs):
     this is just the inverse of the sum of distances
     """
     D = kwargs.get('D')
-    DT = np.sum(D[:,labels][:,:])
+    DT = np.sum(D[labels])
     return 1.0/DT
 
 def gauk(labels, **kwargs):
     D = kwargs.get('D')
     sigma = float(kwargs.get('sigma'))
-    return np.exp( (-D*D)/(2.*sigma*sigma) )
+    return np.exp( (-D**2)/(2.*sigma**2) )
                 
 class simpleGRASP:
     
@@ -199,16 +199,29 @@ class simpleGRASP:
         opt_labels = deepcopy(build_labels)
         # assign elements to nearest node
         N = self.X.shape[0]
-        nodes = np.empty(N, dtype='int')
-        for pj in range(N):
-            nearest = np.argmin(self.D[pj,opt_labels])
-            nodes[pj] = opt_labels[nearest]
+        nodes = -np.ones(N, dtype='int')
+        D = sp.spatial.distance.squareform(sp.spatial.distance.pdist(self.X))
+        #for pj in range(N):
+        #    nearest = np.argmin(self.D[pj,opt_labels])
+        #    nodes[pj] = opt_labels[nearest]
+        #print(set(nodes))
+        print(opt_labels)
+        points = tuple(set(np.arange(N, dtype='int')).difference(opt_labels))
+        for pk in opt_labels:
+            Pj = tuple(set(opt_labels).difference([pk]))
+            oD = np.min(D[Pj, :][:, points])
+            print(oD)
+            nD = np.where(D[pk] <= oD)
+            print(nD, D[pk,pk], D[pk,Pj])
+            nodes[nD[0]] = o
+            raise ValueError
+        print(set(nodes), opt_labels, self.D[:, diff].shape)
         # do the LS
         temp_labels = deepcopy(opt_labels)
         for i in range(self.N_sel):
             # order the elements
             dd = self.D[i, nodes==i]
-            NN = np.argsort(dd)[1:self.N_max+1][::-1]
+            NN = np.argsort(dd)[1:][::-1]
             base_gain = self.score(opt_labels, **self.skwds)
             for j in NN:
                 if j not in opt_labels:
