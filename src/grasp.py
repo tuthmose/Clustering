@@ -55,7 +55,6 @@ class simpleGRASP:
         # check input
         assert isinstance(self.n_iter, int)
         assert isinstance(self.do_local, bool)
-        assert isinstance(self.temp, float)
         if isinstance(self.n_ini, int):
             self.restart = False
         elif isinstance(self.n_ini, list):
@@ -64,7 +63,6 @@ class simpleGRASP:
             raise ValueError("n_ini is an int or a label list")
             
         assert self.alpha >= 0. and self.alpha <= 1.
-        assert self.c_rate > 0. and self.c_rate <= 1.
         if self.alpha == 0:
             print("--- alpha=0 is a greedy run w/o randomness in the RCL")
         
@@ -103,11 +101,12 @@ class simpleGRASP:
         - X:     input data
         - N_sel: fraction of needed points
         """
-        print("-- Starting GRASP with ",self.N_sel," points")
         #check input
         assert isinstance(X, np.ndarray)
         self.X = X
         self.N_sel = int(N_sel * self.X.shape[0])
+        print("-- Starting GRASP with ",self.N_sel," points")
+        
         if self.restart:
             print("--- restarting", self.N_sel, len(self.n_ini))
             assert len(self.n_ini) == self.N_sel
@@ -178,8 +177,12 @@ class simpleGRASP:
             labels = [labels]
         for i in range(self.N_sel - self.n_ini):
             RCL = self.build_RCL(labels)
-            selected = self.rng.choice(RCL, replace=False)
-            labels.append(selected)
+            searching = True
+            while searching:
+                selected = self.rng.choice(RCL, replace=False)
+                if selected not in labels:
+                    labels.append(selected)
+                    searching = False
         score = self.score(labels, **self.skwds)
         return score, labels
 
