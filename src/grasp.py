@@ -26,7 +26,7 @@ class simpleGRASP:
         implemented as a minimization problem
         - n_ini:    number of seed elements b4 construction (1)
         - n_iter:   number of iterations (100)
-        - n_local:  number of passes in local search (100)
+        - do_local: do a linear search in the neighbourhood of each point after construction
         - temp:     temperature for simulated annealing local search (500)
         - n_neigh:   number of neighbours to consider for simulated annealing (0.01)
         - boltzmann:
@@ -44,7 +44,7 @@ class simpleGRASP:
         prop_defaults = {
             'n_ini'     : 1,
             'n_iter'    : 100,
-            'n_local'   : 100,
+            'do_local'  : False,
             'temp'      : 500.,
             'boltzmann' : 1.,
             'c_rate'    : 0.99,
@@ -61,7 +61,7 @@ class simpleGRASP:
             setattr(self, prop, kwargs.get(prop, default))
         # check input
         assert isinstance(self.n_iter, int)
-        assert isinstance(self.n_local, int)
+        assert isinstance(self.do_local, bool)
         assert isinstance(self.temp, float)
         if isinstance(self.n_ini, int):
             self.restart = False
@@ -97,6 +97,11 @@ class simpleGRASP:
             self.kkwds = kkwds
         else:
             self.kkwds = dict()
+            
+        #random seed 
+        if self.seed is not None:
+            assert isinstance(self.seed,int)
+        self.rng = np.random.default_rng(self.seed)
         return None
     
     def run(self, X, N_sel=0.05):
@@ -105,16 +110,13 @@ class simpleGRASP:
         - X:     input data
         - N_sel: fraction of needed points
         """
-        
+        print("-- Starting GRASP")
         #check input
         assert isinstance(X, np.ndarray)
         self.X = X
-        if self.seed is not None:
-            assert isinstance(self.seed,int)
-        self.rng = np.random.default_rng(self.seed)
         self.N_sel = int(N_sel * self.X.shape[0])
         if self.restart:
-            print(self.N_sel,len(self.n_ini))
+            print("--- restarting", self.N_sel, len(self.n_ini))
             assert len(self.n_ini) == self.N_sel
         else:
             assert self.n_ini < self.N_sel
@@ -140,15 +142,13 @@ class simpleGRASP:
             build_score, build_labels = self.construction(init_labels)
             if self.verbose >1:
                 print("building", i, build_score)            
-            if self.n_local > 0:
+            if self.do_local:
                 opt_score, opt_labels = self.local_search(build_score, build_labels)
                 if self.verbose > 1:
                     print("local optimization", i, opt_score)                
-            elif self.n_local == 0:
+            else:
                 opt_score  = build_score                
                 opt_labels = build_labels
-            else:
-                raise ValueError("n_local is >=0")
             if not best_score or opt_score < best_score:
                 best_labels = opt_labels
                 best_score  = opt_score
@@ -186,7 +186,7 @@ class simpleGRASP:
             labels = [labels]
         for i in range(self.N_sel - self.n_ini):
             RCL = self.build_RCL(labels)
-            selected = np.random.choice(RCL, replace=False)
+            selected = self.rng.choice(RCL, replace=False)
             labels.append(selected)
         score = self.score(labels, **self.skwds)
         return score, labels
@@ -197,7 +197,6 @@ class simpleGRASP:
         of each node not nearer to another node
         """
         opt_labels = deepcopy(build_labels)
-        print(build_labels)
         # assign elements to nearest node
         N = self.X.shape[0]
         nodes = np.empty(N, dtype='int')
@@ -209,10 +208,10 @@ class simpleGRASP:
         for i in range(self.N_sel):
             # order the elements
             dd = self.D[i, nodes==i]
-            NN = np.argsort(dd)[1:self.N_max+1][::-1]            
+            NN = np.argsort(dd)[1:self.N_max+1][::-1]
             base_gain = self.score(opt_labels, **self.skwds)
             for j in NN:
-                if j not in build_labels:
+                if j not in opt_labels:
                     temp_labels[i] = j
                     gain = self.score(temp_labels, **self.skwds)
                     if gain < base_gain:
@@ -228,6 +227,6 @@ class simpleGRASP:
         if self.restart:
             labels = self.n_ini
         else:
-            labels = np.random.choice(self.n_ini, replace=False)
+            labels = self.rng.choice(self.n_ini, replace=False)
         return labels        
         
