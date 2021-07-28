@@ -35,7 +35,7 @@ class simpleGRASP:
             'score'     : None,            
             'skwds'     : None,
             'kernel'    : None,
-            'kkwds'     : None            
+            'kkwds'     : None,
             }
         for (prop, default) in prop_defaults.items():
             setattr(self, prop, kwargs.get(prop, default))
@@ -82,17 +82,24 @@ class simpleGRASP:
         self.rng = np.random.default_rng(self.seed)
         return None
     
-    def run(self, X, N_sel=0.05):
+    def run(self, X, N_sel=0.01, maxBuild=None):
         """
         Get input data and run GRASP
-        - X:     input data
-        - N_sel: fraction of needed points
+        - X:        input data
+        - N_sel:    fraction of needed points (default 0.01 of total points)
+        - maxBuild: maximum attempts to create a solution in the building phase
+                    (default N_sel*2)
         """
         #check input
         assert isinstance(X, np.ndarray)
         self.X = X
         self.N_sel = int(N_sel * self.X.shape[0])
-        print("-- Starting GRASP with ",self.N_sel," points")
+        if maxBuild == None:
+            self.maxBuild = 2*self.N_sel
+        else:
+            self.maxBuild = int(maxBuild * self.X.shape[0])
+        assert self.maxBuild > self.N_sel
+        print("-- Starting GRASP with ",self.N_sel," points and ",self.maxBuild," building attempts")
         
         if self.restart:
             print("--- restarting", self.N_sel, len(self.n_ini))
@@ -143,18 +150,17 @@ class simpleGRASP:
         a set of candidate feature vectors C
         """
         candidates = list(self.all_labels.difference(solution))
-        print("building",solution, candidates)        
+        #print("building",solution, candidates)        
         RCL = list()
         gain = [self.score(solution + [c], **self.skwds) for c in candidates]
         v_min = np.min(gain)
         v_max = np.max(gain)
         if self.alpha > 0:
-            print(v_min, v_min+self.alpha*(v_max - v_min),v_max)
+            #print(v_min, v_min+self.alpha*(v_max - v_min),v_max)
             for i, g in enumerate(gain):
                 if g >= v_min and g <= v_min + self.alpha*(v_max - v_min):
                     RCL.append(i)
         elif self.alpha == 0:
-            print("greedy")
             gain_best = np.argmin(gain)
             RCL = [gain_best]
         return RCL
@@ -166,21 +172,21 @@ class simpleGRASP:
         """
         if isinstance(labels, int):
             labels = [labels]
-        RCL = self.build_RCL(labels)
-        if self.verbose > 2:
-            print("---- built RCL")
-        for i in range(self.N_sel - self.n_ini):
-            #RCL = self.build_RCL(labels)
+        attempts = 0
+        while len(labels) < self.N_sel and attempts < self.maxBuild:
+            RCL = self.build_RCL(labels)
             if self.verbose > 2:
-                print("---- building step ",i)
-            while len(labels) < self.N_sel:
-                selected = self.rng.choice(RCL, replace=False)
-                if selected not in labels:
-                    labels.append(selected)
-                print(selected, RCL, labels)
-                raise ValueError                    
+                print("---- built RCL of len ",len(RCL))
+            if len(RCL) > 1:
+                labels.append(self.rng.choice(RCL, replace=False))
+            else:
+                labels.append(RCL[0])
+            attempts += 1
+        if attempts >= self.maxBuild:
+            print("ERROR: could build a solution with given paramenters")
+            raise ValueError("Decrease N_sel or increase alpha")
         score = self.score(labels, **self.skwds)
-        return score, labels
+        return score, labels                
 
     def local_search(self, build_score, build_labels):
         """
