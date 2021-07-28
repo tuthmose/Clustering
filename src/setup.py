@@ -17,7 +17,7 @@ extensions = [
         #libraries=[...],
         #library_dirs=[...],
         ),
-    Extension("grasp",["grasp.pyx"])]
+    Extension("scores",["scores.pyx"])]
 
 setup(
     ext_modules=cythonize(extensions),

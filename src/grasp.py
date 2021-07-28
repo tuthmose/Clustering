@@ -4,6 +4,47 @@ import numpy as np
 import random
 import scipy as sp
                
+from cython import cdivision, boundscheck, wraparound
+from cython.parallel import prange
+from libc.math cimport pow as cpow
+    
+#@wraparound(False)  
+#@boundscheck(False) 
+def frscore(labels, **kwargs):
+    """
+    dissimilarity score as in 10.1021/acs.jctc.7b00779
+    """   
+    cdef int i, j, nlabels, M
+    cdef int [:] near, L
+    cdef double [:,:] cD
+    cdef double DS = 0.
+    cdef double ef = 0.
+    cdef double ES = 0.
+
+    D  = kwargs.get('D')
+    NN = kwargs.get('NN')
+    N_loc = int(kwargs.get('N_loc'))
+    nlabels = len(labels)
+    M = N_loc
+
+    if nlabels >= N_loc:
+        M = N_loc
+    else:
+        M = nlabels
+
+    L = np.asarray(labels, dtype=np.intc)
+    #neighbours = np.argsort(D, axis=1)[0,:M+1]
+    near = np.asarray(NN, dtype=np.intc)[0,:M+1]
+    cD = D
+    
+    for j in range(M):
+        ef = cpow(2., M-j)
+        ES += ef
+        for i in range(nlabels):
+            DS += ef*cD[near[j], L[i]]
+    DS = DS/(nlabels*M*ES)
+    return DS
+               
 def sumdist(labels, **kwargs):
     """
     this is just the inverse of the sum of distances
@@ -120,11 +161,14 @@ class simpleGRASP:
         #distance, transformations and initialization
         self.D = sp.spatial.distance.squareform(sp.spatial.distance.pdist(X,metric=self.metric))
         self.kkwds['X'] = self.X
-        self.kkwds['D'] = self.D        
+        self.kkwds['D'] = self.D
         if self.kernel is not None:
             self.D = self.kernel(np.arange(self.X.shape[0]), **self.kkwds)
-        self.skwds['X'] = self.X
-        self.skwds['D'] = self.D
+        
+        self.NN = np.argsort(self.D, axis=1)        
+        self.skwds['X']  = self.X
+        self.skwds['D']  = self.D
+        self.skwds['NN'] = self.NN
         init_labels = self.init_solution()
         
         # main loop
@@ -157,15 +201,13 @@ class simpleGRASP:
         gain = [self.score(solution + [c], **self.skwds) for c in candidates]
         v_min = np.min(gain)
         v_max = np.max(gain)
-        for i, g in enumerate(gain):
-            if g >= v_min and g <= v_min + self.alpha*(v_max - v_min):
-                if self.alpha > 0:
-                    RCL.append((i, g))
-                else:
-                    RCL.append(i)
-        if self.alpha > 0 :
-            RCL = sorted(RCL, key=lambda cand: cand[1])
-            RCL = [c[0] for c in RCL]
+        if self.alpha > 0:
+            for i, g in enumerate(gain):
+                if g >= v_min and g <= v_min + self.alpha*(v_max - v_min):
+                    RCL.append(i))
+        elif self.alpha == 0:
+            gain_best = np.argmin(gain)
+            RCL = [gain_best]
         return RCL
 
     def construction(self, labels):
@@ -175,14 +217,16 @@ class simpleGRASP:
         """
         if isinstance(labels, int):
             labels = [labels]
+        RCL = self.build_RCL(labels)
+        print("---- built RCL")
         for i in range(self.N_sel - self.n_ini):
-            RCL = self.build_RCL(labels)
-            searching = True
-            while searching:
+            #RCL = self.build_RCL(labels)
+            if self.verbose > 2:
+                print("---- building step ",i)
+            while len(labels) < self.N_sel:
                 selected = self.rng.choice(RCL, replace=False)
                 if selected not in labels:
-                    labels.append(selected)
-                    searching = False
+                    labels.append(selected)                   
         score = self.score(labels, **self.skwds)
         return score, labels
 
