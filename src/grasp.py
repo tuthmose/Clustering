@@ -13,8 +13,6 @@ class simpleGRASP:
         implemented as a minimization problem
         - n_ini:    fraction of seed elements for initialization (1)
         - N_sel:    fraction of needed points (default 0.01 of total points)
-        - maxBuild: maximum attempts to create a solution in the building phase
-                    (default N_sel*2)
         - nBuild    fraction of random elements selected to create candidate list for RCL
                     and for initialization
         - n_iter:   number of iterations (10)
@@ -30,7 +28,6 @@ class simpleGRASP:
         prop_defaults = {
             'N_sel'     : 0.01,
             'n_ini'     : 0.001,
-            'maxBuild'  : None,
             'nBuild'    : 0.2,
             'n_iter'    : 10,
             'do_local'  : False,
@@ -84,13 +81,8 @@ class simpleGRASP:
         self.N_sel  = int(self.N_sel * self.X.shape[0])
         self.n_ini  = max(int(self.n_ini * self.X.shape[0]), 1)
         self.nBuild = int(self.nBuild * self.X.shape[0])
-        if self.maxBuild == None:
-            self.maxBuild = 2*self.N_sel
-        else:
-            self.maxBuild = int(maxBuild * self.X.shape[0])
-        assert self.maxBuild > self.N_sel
         
-        print("-- Starting GRASP with ",self.N_sel," points and ",self.maxBuild," building attempts")
+        print("-- Starting GRASP with ",self.N_sel," points")
             
         self.all_labels = set(list(range(self.X.shape[0])))
         best_score  = False
@@ -145,7 +137,7 @@ class simpleGRASP:
         element from the RCL for the needed number of elements
         """
         attempts = 0
-        while len(labels) < self.N_sel and attempts < self.maxBuild:
+        while len(labels) < self.N_sel:
             nRCL, RCL = self.build_RCL(labels)
             if self.verbose > 2:
                 print("---- built RCL of len ", nRCL)
@@ -153,10 +145,6 @@ class simpleGRASP:
                 labels.append(self.rng.choice(RCL, replace=False))
             else:
                 labels.append(RCL.pop())
-            attempts += 1
-        if attempts >= self.maxBuild:
-            print("ERROR: could build a solution with given paramenters")
-            raise ValueError("Decrease N_sel or increase alpha")
         score = self.score(labels, **self.skwds)
         return score, labels                
 
