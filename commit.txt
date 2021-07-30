@@ -1,4 +1,2 @@
-rewritten kmedoids as kmeans like solution
-kmeans++ now works for kmedoids too
-added PAM but result ???
-added gromos
+Added grasp_mc. The RCL gives unsatisfactory results
+must be checked wth alpha=1.

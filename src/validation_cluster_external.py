@@ -17,7 +17,7 @@ class ext_cluster_eval(object):
     """
     def __init__(self,**kwargs):
         for key, value in kwargs.items():
-            if key is 'ground':
+            if key == 'ground':
                 self.ground = value
             if key == 'prediction':
                 self.prediction = value

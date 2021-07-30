@@ -5,32 +5,23 @@ from scipy.spatial.distance import cdist,pdist,squareform
 from scipy.special import binom
 
 # Internal cluster validation criteria:
+
+# Base class
 # - Davies Bouldin index
 # - Dunn index (single, average, complete)
-# - Pseudo F function
-# G Mancini September 2019
+# - Calinski - Harabasz score
+# - f(K) function
 
-# 1) *X* is ALWAYS the feature or coordinate matrix,
-#    [npoints x nfeatures]
-#    *D*, the distance matrix is
-#    always expected to be a nxn square symmetric matrix 
-#    with pair distances between the data *ALL* data set 
-#    elements:
-#      0    1   2   3
-#      0 - d00 d01 ...
-#      1 - d10 d11 ...
-#      2 - ... 
-#      3 - ...
-#    
-# 2) *clusters* is always expected to be a list of all elements
-#     the data set where the elements are identified with the label
-#     of the corresponding CLUSTER (0 to n) or cluster centroids
-#     IF AVAILABLE; if centroids are available
-#     set(clusters) ALWAYS gives the centroids labels
-#     cluster labels are ALWAYS positive integers
-#     a label of -1 ALWAYS indentifies noise
-           
-def find_centroid(D,beta=1.,mask=None):
+# Range K class
+# - Gap Statistic nyi
+
+# G Mancini November 2019
+
+# note that in many cases, the same operation
+# (e.g. WSS for a cluster) is done for different
+# criteria. This could be optimized.
+          
+def find_centroid(D, beta=1., mask=None):
     """
     find centroid on input distance matrix using similarity scores:
     s_ij = e^-beta rmsd_ij / sigma(rmsd)
@@ -61,15 +52,15 @@ def core2centers(**kwargs):
     metric = "euclidean"
     clusters = False
     for key, value in kwargs.items():
-        if key is "clusters":
+        if key == "clusters":
             clusters = value
-        if key is "X":
+        if key == "X":
             X = value
-        if key is "D":
+        if key == "D":
             D = value
-        if key is "metric":
+        if key == "metric":
             metric = value
-        if key is "beta":
+        if key == "beta":
             beta = value
     if not "clusters":
         raise ValueError("Missing cluster list")
@@ -128,9 +119,9 @@ class cluster_eval(object):
         for (prop, default) in prop_defaults.items():
             setattr(self, prop, kwargs.get(prop, default))                
         #precomputed distance?
-        if self.metric is "precomputed" and self.D is None:
+        if self.metric == "precomputed" and not np.any(self.D): 
             raise ValueError("metric=precomputed but missing distance matrix")
-        elif self.metric is not "precomputed" and self.X is not None:
+        elif self.metric != "precomputed" and np.any(self.X):
             self.D = squareform(pdist(self.X,metric=self.metric)) 
         return None
 
@@ -249,7 +240,7 @@ class cluster_eval(object):
         #keywords
         self.noise = "uniq"
         noise_filt = ["uniq","ignore","singles"]
-        self.methods = ["DBI","Dunn","psF"]        
+        self.methods = ["DBI","Dunn","CH","f_K"]        
         method = None
         norm_noise = False
         #Dunn index kwds
@@ -257,22 +248,32 @@ class cluster_eval(object):
         intra = "allav"
         intra_avail = ("center","allav","allmax")
         inter_avail = ("center","allav","allmin")
-        # use true coordinate centers in psF instead
+        # use true coordinate centers in CH instead
         # of nearest points (centroids)
         usec = False
+        Skm1 = 1.
+        Nd   = None
         for key, value in kwargs.items():
-            if key=="noise":
+            if key == "noise":
                 self.noise = value
-            if key=="method":
+            if key == "method":
                 method = value
-            if key=="inter":
+            if key == "inter":
                 inter = value
-            if key=="intra":
+            if key == "intra":
                 intra = value
-            if key=="use_centroid":
+            if key == "use_centroid":
                 usec = value
-            if key=="norm_noise":
+            if key == "norm_noise":
                 norm_noise = True
+            if key == "Skm1":
+                Skm1 = value
+            if key == "Nd":
+                Nd = value
+        if self.X is not None and Nd == None:
+            Nd = self.X.shape[1]
+        elif Nd == None and method == 'f_K':
+            raise ValueError("Need # dimensions for f_K")    
         #check kwds
         if method not in self.methods:
             raise NotImplementedError("no method %s in %s" \
@@ -301,7 +302,7 @@ class cluster_eval(object):
         try: assert self.N > 1
         except AssertionError:
             print("Error :at least two custers are needed")
-            if method is "psF":
+            if method == "CH":
                 return (False,False)
             else:
                 return False
@@ -316,8 +317,10 @@ class cluster_eval(object):
              result = self.davies_bouldin(filt_X,filt_clust,size,filt_D)
         if method == "Dunn":
              result = self.dunn(filt_X,filt_clust,size,filt_D,wid=intra,bwd=inter)
-        if method == "psF":
-            result = self.pseudoF(filt_X,filt_clust,size,filt_D,usec)
+        if method == "CH":
+            result = self.CHscore(filt_X,filt_clust,size,filt_D,usec)
+        if method == "f_K":
+            result = self.f_K(filt_X,filt_clust,filt_D,usec,Skm1,Nd)
         if self.noise=="ignore" and norm_noise:
             noise_const = (self.NData - nnoise)/self.NData
             result = result*noise_const
@@ -387,9 +390,11 @@ class cluster_eval(object):
             DBI += np.max(Rij)
         return DBI / self.N
 
-    def pseudoF(self,coord,clust,size,dist,use_centroid=False):
+    def CHscore(self,coord,clust,size,dist,use_centroid=False):
         """
-        pseudo and WSS for elbow criterion
+        Calinski Harabasz score
+        1.Caliński, T. & Harabasz, J. A dendrite method for cluster analysis. 
+        Communications in Statistics 3, 1–27 (1974).
         use either centroids (if only distances are available)
         or true centers (if coordinates/features are available)
         """
@@ -414,5 +419,35 @@ class cluster_eval(object):
                 db = size[i]*(cdist(center_i,COM,metric=self.metric)[0][0])**2
             WSS += dw
             BSS += db
-        psF = ( BSS/(self.N -1) ) / ( WSS/(self.NData - self.N) )
-        return np.asarray((psF, WSS))
+        CHs = ( BSS/(self.N -1) ) / ( WSS/(self.NData - self.N) )
+        return np.asarray((CHs, WSS))
+    
+    def f_K(self,coords,clusters,dist,use_centroid,Skm1,Nd):
+        """
+        
+        """
+        #almost copied from 
+        #https://datasciencelab.wordpress.com/2014/01/21/selection-of-k-in-k-means-clustering-reloaded/
+        thisk = np.unique(clusters).shape[0]
+        #throw away recursive definition of a_k
+        assert thisk  >= 2
+        assert Nd >= 2
+        a_k = lambda k, Nd: 1. - 3./(4.*Nd) if k == 2 else a_k(k-1, Nd) + (1-a_k(k-1, Nd))/6.
+        ##
+        Sk = 0.
+        if self.X is not None and use_centroid is False:
+            for c in self.centroids:
+                coord_c = coords[clusters==c]
+                mu_c = self.com(coord=coord_c,weight=None,nearest=False)
+                Sk += np.sum(cdist(coord_c,np.expand_dims(mu_c,axis=0),metric=self.metric)**2)
+        else:
+            for c in self.centroids:
+                Sk += np.sum(dist[clusters==c,:][:,c])
+        #
+        if thisk == 1:
+            fs = 1
+        elif Skm1 == 0:
+            fs = 1
+        else:
+            fs = Sk/(a_k(thisk,Nd)*Skm1)
+        return fs, Sk 
