@@ -1,7 +1,7 @@
 from copy import deepcopy
-from scipy.spatial.distance import cdist, pdist, squareform
 
 import numpy as np
+import random
 import scipy as sp
                               
 class simpleGRASP:
@@ -15,8 +15,6 @@ class simpleGRASP:
         - N_sel:    fraction of needed points (default 0.01 of total points)
         - nBuild    fraction of random elements selected to create candidate list for RCL
                     and for initialization
-        - nNeigh    fraction of points defining the maximum dimension of the neighbourhood
-                    in the local linear search
         - n_iter:   number of iterations (10)
         - do_local: do a linear search in the neighbourhood of each point after construction
         - alpha:    greedyness factor in [0,1] (0.75)
@@ -31,7 +29,6 @@ class simpleGRASP:
             'N_sel'     : 0.01,
             'n_ini'     : 0.001,
             'nBuild'    : 0.2,
-            'nNeigh'    : 0.05,
             'n_iter'    : 10,
             'do_local'  : False,
             'alpha'     : 0.1,
@@ -48,7 +45,6 @@ class simpleGRASP:
         assert self.N_sel > 0. and self.N_sel < 1.
         assert self.n_ini > 0. and self.n_ini < 1.
         assert self.nBuild > 0. and self.nBuild < 1.
-        assert self.nNeigh > 0. and self.nNeigh < 1.
         assert isinstance(self.n_iter, int)
         assert isinstance(self.do_local, bool)
         assert self.alpha >= 0. and self.alpha <= 1.
@@ -85,7 +81,6 @@ class simpleGRASP:
         self.N_sel  = int(self.N_sel * self.X.shape[0])
         self.n_ini  = max(int(self.n_ini * self.X.shape[0]), 1)
         self.nBuild = int(self.nBuild * self.X.shape[0])
-        self.nNeigh = int(self.nNeigh * self.X.shape[0])
         
         print("-- Starting GRASP with ",self.N_sel," points")
             
@@ -159,20 +154,31 @@ class simpleGRASP:
         of each node not nearer to another node
         """
         opt_labels = deepcopy(build_labels)
-        points = list(self.all_labels.difference(opt_labels))
-        LD = cdist(self.X[opt_labels],self.X[points], metric=self.metric)
-        for l, ol in enumerate(opt_labels):
-            neighbourhood = np.where(LD[l] <= LD)[0]
-            if len(neighbourhood) == 0:
-                raise ValueError("no neighbourhood!")
-            nsearch = min(self.nNeigh, neighbourhood.shape[0])
-            NN = np.argsort(LD[l])[:nsearch]
-            for n in NN:
-                old_score = self.score(opt_labels, **self.skwds)
-                opt_labels[l] = n
-                new_score = self.score(opt_labels, **self.skwds)
-                if old_score <= new_score:
-                    opt_labels[l] = ol
+        # assign elements to nearest node
+        N = self.X.shape[0]
+        nodes = -np.ones(N, dtype='int')
+        for o in opt_labels:
+            nodes[o] = o
+        points = tuple(set(np.arange(N, dtype='int')).difference(opt_labels))
+        for pk in opt_labels:
+            Pj = tuple(set(opt_labels).difference([pk]))
+            oD = np.min(self.D[Pj, :][:, points])
+            nD = np.where(self.D[pk,points] <= oD)
+            nodes[nD[0]] = o
+        # do the LS
+        for k, pk in enumerate(opt_labels):
+            if len(nodes[nodes == pk]) > 1:
+                temp_labels = deepcopy(opt_labels)
+                # order the elements
+                dd = self.D[k, nodes==pk]
+                NN = np.argsort(dd)[1:][::-1]
+                base_gain = self.score(opt_labels, **self.skwds)
+                for j in NN:
+                    if j not in opt_labels:
+                        temp_labels[k] = j
+                        gain = self.score(temp_labels, **self.skwds)
+                        if gain < base_gain:
+                            opt_labels[k] = j
         opt_score = self.score(opt_labels, **self.skwds)
         return opt_score, opt_labels
 
