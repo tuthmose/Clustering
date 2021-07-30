@@ -2,13 +2,57 @@ import numpy as np
 import random
 import scipy as sp
                
+from scipy.spatial.distance import cdist, pdist, squareform
+               
 from cython import cdivision, boundscheck, wraparound
 from cython.parallel import prange
 from libc.math cimport pow as cpow
     
 @wraparound(False)  
 @boundscheck(False) 
-def frscore(labels, **kwargs):
+
+class frscore:
+    """
+    Dissimilarity score weighted by exp2 factor
+    see 10.1021/acs.jctc.7b00779
+    """
+    
+    def __init__(self, X, metric="euclidean", N_loc=6):
+        """
+        get coordinates and build distances and neighbour matrices
+        """
+        self.X = X
+        self.metric = metric
+        assert isinstance(self.X, np.ndarray)
+        #distances
+        self.D = squareform(pdist(X, metric=self.metric))
+        self.N_loc = N_loc
+        self.expfact = np.array([2.**(N_loc-i-1) for i in range(N_loc)])        
+        return None
+    
+    def __call__(self, labels, nthread=2):
+        """
+        calculate DS on given subset of labels
+        """
+        cdef int i, j, nlabels, NT, M
+        cdef double [:,:] cD
+        cdef double DS
+        cdef double [:] ef
+
+        M = self.N_loc
+        nthread = int(nthread)       
+        nlabels = len(labels)
+        cD = np.sort(self.D[labels, :][:, labels], axis=0)
+        ef = self.expfact
+        DS = 0.        
+
+        for j in prange(M, num_threads=NT, nogil=True):
+            for i in range(nlabels):
+                DS += ef[j]*cD[j+1,i]
+        
+        return DS/(nlabels*M)
+    
+def oldfrscore(labels, **kwargs):
     """
     dissimilarity score as in 10.1021/acs.jctc.7b00779
     """   
@@ -18,7 +62,6 @@ def frscore(labels, **kwargs):
     cdef double [:] ef
 
     D  = kwargs.get('D')
-    X =  kwargs.get('X')
     N_loc = int(kwargs.get('N_loc'))
     try:
         nthread = int(kwargs.get('nthread'))

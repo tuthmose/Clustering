@@ -28,8 +28,8 @@ class simpleGRASP:
         """
         # get values
         prop_defaults = {
-            'N_sel'     : 0.01,
-            'n_ini'     : 0.001,
+            'N_sel'     : 0.01
+            'n_ini'     : None,
             'maxBuild'  : None,
             'nBuild'    : 0.2,
             'n_iter'    : 10,
@@ -82,7 +82,7 @@ class simpleGRASP:
         self.X = X
         
         self.N_sel  = int(self.N_sel * self.X.shape[0])
-        self.n_ini  = max(int(self.n_ini * self.X.shape[0]), 1)
+        self.n_ini  = int(self.n_ini * self.X.shape[0])
         self.nBuild = int(self.nBuild * self.X.shape[0])
         if self.maxBuild == None:
             self.maxBuild = 2*self.N_sel
@@ -95,16 +95,23 @@ class simpleGRASP:
         self.all_labels = set(list(range(self.X.shape[0])))
         best_score  = False
         best_labels = None
-    
+        
+        #distance, transformations and initialization
+        self.D = sp.spatial.distance.squareform(sp.spatial.distance.pdist(X,metric=self.metric))
+        self.kkwds['X'] = self.X
+        self.kkwds['D'] = self.D
+        if self.kernel is not None:
+            self.D = self.kernel(np.arange(self.X.shape[0]), **self.kkwds)
+        
+        self.NN = np.argsort(self.D, axis=1)        
         self.skwds['X']  = self.X
-
-        if init_labels == None:
-            init_labels = self.init_solution()
+        self.skwds['D']  = self.D
+        self.skwds['NN'] = self.NN
+        init_labels = self.init_solution()
         
         # main loop
         for i in range(self.n_iter):
-            if i>0:
-                init_labels = self.init_solution()
+            init_labels = self.init_solution()
             build_score, build_labels = self.construction(init_labels)
             if self.verbose >1:
                 print("building", i, build_score)            
@@ -127,19 +134,21 @@ class simpleGRASP:
         Build the restricted candidate list from
         a set of candidate feature vectors C
         """
-        pcandidates = self.all_labels.difference(solution)
-        candidates = self.rng.choice(pcandidates, size=self.nBuild, replace=False)
+        candidates = list(self.all_labels.difference(solution))
+        #print("building",solution, candidates)        
         RCL = list()
         gain = [self.score(solution + [c], **self.skwds) for c in candidates]
         v_min = np.min(gain)
         v_max = np.max(gain)
         if self.alpha > 0:
+            #print(v_min, v_min+self.alpha*(v_max - v_min),v_max)
             for i, g in enumerate(gain):
                 if g >= v_min and g <= v_min + self.alpha*(v_max - v_min):
-                    RCL.append(candidates[i])
+                    RCL.append(i)
         elif self.alpha == 0:
-            RCL = candidates[np.argmin(gain)]
-        return len(RCL), RCL
+            gain_best = np.argmin(gain)
+            RCL = [gain_best]
+        return RCL
 
     def construction(self, labels):
         """
@@ -150,13 +159,13 @@ class simpleGRASP:
             labels = [labels]
         attempts = 0
         while len(labels) < self.N_sel and attempts < self.maxBuild:
-            nRCL, RCL = self.build_RCL(labels)
+            RCL = self.build_RCL(labels)
             if self.verbose > 2:
                 print("---- built RCL of len ",len(RCL))
-            if nRCL > 1:
+            if len(RCL) > 1:
                 labels.append(self.rng.choice(RCL, replace=False))
             else:
-                labels.append(RCL)
+                labels.append(RCL[0])
             attempts += 1
         if attempts >= self.maxBuild:
             print("ERROR: could build a solution with given paramenters")
@@ -202,20 +211,10 @@ class simpleGRASP:
         """
         pick n_ini elements w/o repetition to seed the solution
         """
-        labels = [self.rng.choice(self.all_labels)]
-        #if self.n_ini > 1:
-        #    for l in range(1, self.n_ini):
-        #        pcandidates = self.all_labels.difference(labels)
-        #        candidates = self.rng.choice(pcandidates, size=self.nBuild/2., replace=False)
-        #        gain = [self.score(solution + [c], **self.skwds) for c in candidates]
-        #        ng = np.argsort(gain)
-        ##       roulette selection
-        #        coin = self.rng.uniform(high=np.sum(gain))
-        #        gsum = 0.
-        #        for i in ng:
-        #           gsum = gsum + gain[i]
-        #           if gsum >= coin:
-        #               labels.append(i)
-        #               break
+        #labels = self.rng.integers(0, high=self.X.shape[0], size=self.n_ini, endpoint=False)
+        if self.restart:
+            labels = self.n_ini
+        else:
+            labels = self.rng.choice(self.n_ini, replace=False)
         return labels        
         

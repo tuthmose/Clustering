@@ -12,31 +12,33 @@ def frscore(labels, **kwargs):
     """
     dissimilarity score as in 10.1021/acs.jctc.7b00779
     """   
-    cdef int i, j, nlabels, N_loc
+    cdef int i, j, nlabels, N_loc, nthread
     cdef double [:,:] cD
-    cdef double DS, ES
+    cdef double DS #, ES
     cdef double [:] ef
 
     D  = kwargs.get('D')
     X =  kwargs.get('X')
     N_loc = int(kwargs.get('N_loc'))
+    try:
+        nthread = int(kwargs.get('nthread'))
+    except:
+        nthread = 4
+    
     nlabels = len(labels)
     cD = np.sort(D[labels, :][:, labels], axis=0)
     DS = 0.
-    ES = 0.
-
-    print(D[:6,0])
-    print(np.sort(D[labels, :][:, labels], axis=0)[:6,0])
+    #ES = 0.
 
     expfact = np.array([2.**(N_loc-i-1) for i in range(N_loc)])
     ef = expfact
-    ES = np.sum(expfact)
+    #ES = np.sum(expfact)
     
-    for j in range(N_loc):
+    for j in prange(N_loc, num_threads=nthread, nogil=True):
         for i in range(nlabels):
             DS += ef[j]*cD[j+1,i]
-    print(DS,DS/(nlabels*N_loc),DS/(nlabels*N_loc*ES))
-    return DS
+    
+    return DS/(nlabels*N_loc)
                
 def sumdist(labels, **kwargs):
     """
