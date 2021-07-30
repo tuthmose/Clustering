@@ -17,20 +17,18 @@ class frscore:
     see 10.1021/acs.jctc.7b00779
     """
     
-    def __init__(self, X, metric="euclidean", N_loc=6):
+    def __init__(self, X, metric="euclidean", N_loc=6, inverse=True):
         """
         get coordinates and build distances and neighbour matrices
         """
-        self.X = X
-        self.metric = metric
-        assert isinstance(self.X, np.ndarray)
-        #distances
-        self.D = squareform(pdist(X, metric=self.metric))
+        assert isinstance(X, np.ndarray)
+        self.D = squareform(pdist(X, metric=metric))
         self.N_loc = N_loc
-        self.expfact = np.array([2.**(N_loc-i-1) for i in range(N_loc)])        
+        self.expfact = np.array([2.**(N_loc-i-1) for i in range(N_loc)])
+        self.inverse = inverse
         return None
-    
-    def __call__(self, labels, nthread=2):
+
+    def calc(self, labels, nthread=2):
         """
         calculate DS on given subset of labels
         """
@@ -39,7 +37,7 @@ class frscore:
         cdef double DS
         cdef double [:] ef
 
-        M = self.N_loc
+        M = min(len(labels), self.N_loc)
         nthread = int(nthread)       
         nlabels = len(labels)
         cD = np.sort(self.D[labels, :][:, labels], axis=0)
@@ -50,7 +48,13 @@ class frscore:
             for i in range(nlabels):
                 DS += ef[j]*cD[j+1,i]
         
-        return DS/(nlabels*M)
+        DS = DS/(nlabels*M)
+        if self.inverse:
+            DS = 1./DS
+        return DS
+   
+    def __call__(self, labels, nthread=2):
+        return self.calc(labels, nthread)
     
 def oldfrscore(labels, **kwargs):
     """

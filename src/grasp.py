@@ -95,8 +95,6 @@ class simpleGRASP:
         self.all_labels = set(list(range(self.X.shape[0])))
         best_score  = False
         best_labels = None
-    
-        self.skwds['X']  = self.X
 
         if init_labels == None:
             init_labels = self.init_solution()
@@ -127,7 +125,7 @@ class simpleGRASP:
         Build the restricted candidate list from
         a set of candidate feature vectors C
         """
-        pcandidates = self.all_labels.difference(solution)
+        pcandidates = list(self.all_labels.difference(solution))
         candidates = self.rng.choice(pcandidates, size=self.nBuild, replace=False)
         RCL = list()
         gain = [self.score(solution + [c], **self.skwds) for c in candidates]
@@ -138,7 +136,7 @@ class simpleGRASP:
                 if g >= v_min and g <= v_min + self.alpha*(v_max - v_min):
                     RCL.append(candidates[i])
         elif self.alpha == 0:
-            RCL = candidates[np.argmin(gain)]
+            RCL.append(candidates[np.argmin(gain)])
         return len(RCL), RCL
 
     def construction(self, labels):
@@ -146,17 +144,15 @@ class simpleGRASP:
         Build a candidate solution selecting a random
         element from the RCL for the needed number of elements
         """
-        if isinstance(labels, int):
-            labels = [labels]
         attempts = 0
         while len(labels) < self.N_sel and attempts < self.maxBuild:
             nRCL, RCL = self.build_RCL(labels)
             if self.verbose > 2:
-                print("---- built RCL of len ",len(RCL))
+                print("---- built RCL of len ", nRCL)
             if nRCL > 1:
                 labels.append(self.rng.choice(RCL, replace=False))
             else:
-                labels.append(RCL)
+                labels.append(RCL.pop())
             attempts += 1
         if attempts >= self.maxBuild:
             print("ERROR: could build a solution with given paramenters")
@@ -202,7 +198,7 @@ class simpleGRASP:
         """
         pick n_ini elements w/o repetition to seed the solution
         """
-        labels = [self.rng.choice(self.all_labels)]
+        labels = [int(self.rng.uniform(high=self.X.shape[0]))]
         #if self.n_ini > 1:
         #    for l in range(1, self.n_ini):
         #        pcandidates = self.all_labels.difference(labels)
