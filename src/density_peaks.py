@@ -30,16 +30,15 @@ class density_peaks(object):
         if self.cutoff == 0.0:
             raise ValueError("cutoff must > 0")
         elif self.cutoff=="auto":
-            print("Determining cutoff using a % of neighbors=",percent)
-            self.cutoff = self.use_percent()
+            print("Determining cutoff using a % of neighbors=",self.percent)
 
-    def use_percent(self):
+    def use_percent(self, D):
         """
         calculate average distance so that
         average number of neighbors within
         is perc of total points
         """
-        dd = np.sort(self.D.ravel())
+        dd = np.sort(D.ravel())
         N = dd.shape[0]
         frac = N*self.percent/100. 
         cutoff = dd[int(frac)]
@@ -92,6 +91,7 @@ class density_peaks(object):
         elif X is not None:
             D = squareform(pdist(X,metric=self.metric))
         self.N = D.shape[0]
+        self.cutoff = self.use_percent(D)
         #calculate decision graph
         self.rho,self.order = self.calc_rho(D)
         self.delta,self.nneigh = self.calc_delta(D)

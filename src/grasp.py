@@ -57,13 +57,15 @@ class simpleGRASP:
         
         # score 
         assert self.score is not None
-        if self.skwds is not None:
+        if isinstance(self.skwds, str):
             mykwargs = self.skwds.split()
             skwds = dict()
             for k in mykwargs:
                 kv = k.split(":")
                 skwds[kv[0]] = kv[1]
             self.skwds = skwds
+        elif isinstance(self.skwds, dict):
+            pass
         else:
             self.skwds = dict()
             

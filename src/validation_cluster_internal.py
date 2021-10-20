@@ -422,7 +422,7 @@ class cluster_eval(object):
         CHs = ( BSS/(self.N -1) ) / ( WSS/(self.NData - self.N) )
         return np.asarray((CHs, WSS))
     
-    def f_K(self,coords,clusters,dist,use_centroid,Skm1,Nd):
+    def f_K(self, coords, clusters, dist, use_centroid, Skm1, Nd):
         """
         
         """

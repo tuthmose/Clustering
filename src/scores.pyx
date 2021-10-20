@@ -57,9 +57,6 @@ class frscore:
         return self.calc(labels, nthread)
     
 def oldfrscore(labels, **kwargs):
-    """
-    dissimilarity score as in 10.1021/acs.jctc.7b00779
-    """   
     cdef int i, j, nlabels, N_loc, nthread
     cdef double [:,:] cD
     cdef double DS #, ES
@@ -96,6 +93,9 @@ def sumdist(labels, **kwargs):
     return 1.0/DT
 
 def gauk(labels, **kwargs):
+    """
+    transform with a gaussian kernel
+    """
     D = kwargs.get('D')
     sigma = float(kwargs.get('sigma'))
     return np.exp( (-D**2)/(2.*sigma**2) )
