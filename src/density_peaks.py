@@ -32,25 +32,25 @@ class density_peaks(object):
         elif self.cutoff=="auto":
             print("Determining cutoff using a % of neighbors=",self.percent)
 
-    def use_percent(self, D):
+    def use_percent(self):
         """
         calculate average distance so that
         average number of neighbors within
         is perc of total points
         """
-        dd = np.sort(D.ravel())
+        dd = np.sort(self.D.ravel())
         N = dd.shape[0]
         frac = N*self.percent/100. 
         cutoff = dd[int(frac)]
         return cutoff
 
-    def calc_rho(self, D):
+    def calc_rho(self):
         """
         calculate local density
         """
         rho = np.zeros(self.N)
         for i in range(self.N):
-            mydist = D[i,:]
+            mydist = self.D[i,:]
             if self.kernel == "flat":
                 dens = float(len(mydist[mydist<self.cutoff]))-1.
             elif self.kernel == "gaussian":
@@ -59,23 +59,23 @@ class density_peaks(object):
         rank = np.argsort(rho)[::-1]
         return rho,rank
 
-    def calc_delta(self, D):
+    def calc_delta(self):
         """
         loop on ordered densities; for each point find
         minimum distance from other points with higher density
         the point with the highest density is assigned as 
         neighbor to build clusters
         """
-        maxd = np.max(D)
+        maxd = np.max(self.D)
         nneigh = np.zeros(self.N,dtype=np.int64)
         delta  = maxd*np.ones(self.N)
         delta[self.order[0]] = -1.
         for i in range(1,self.N):
             I = self.order[i]
             Imin = self.order[:i]
-            dd = np.min(D[I,Imin])
+            dd = np.min(self.D[I,Imin])
             delta[I] = dd
-            nn = self.order[np.where(D[I,Imin]==dd)[0][0]]
+            nn = self.order[np.where(self.D[I,Imin]==dd)[0][0]]
             nneigh[I] = nn
         delta[self.order[0]] = np.max(delta)
         #delta[self.order[0]] = np.max(self.D[self.order[0]])
@@ -88,13 +88,15 @@ class density_peaks(object):
         # check X and/or D
         if self.metric=="precomputed" and D is None:
             raise ValueError("missing precomputed distance matrix")
-        elif X is not None:
-            D = squareform(pdist(X,metric=self.metric))
-        self.N = D.shape[0]
-        self.cutoff = self.use_percent(D)
+        elif isinstance(X, np.ndarray):
+            self.D = squareform(pdist(X,metric=self.metric))
+        else:
+            raise ValueError("you must provide either X or D as a numpy array")
+        self.N = self.D.shape[0]
+        self.cutoff = self.use_percent()
         #calculate decision graph
-        self.rho,self.order = self.calc_rho(D)
-        self.delta,self.nneigh = self.calc_delta(D)
+        self.rho,self.order = self.calc_rho()
+        self.delta,self.nneigh = self.calc_delta()
         return self.rho,self.delta
 
     def get_centroids(self,**kwargs):
@@ -134,7 +136,7 @@ class density_peaks(object):
             raise ValueError("Error: Unassigned points are present")
         return self.clusters
 
-    def create_halo(self, D):
+    def create_halo(self):
         """
         create halo of points for each cluster that
         may be assigned as noise
@@ -150,7 +152,7 @@ class density_peaks(object):
             extpoints = NN[extpoints]
             for i in intpoints:
                 for j in extpoints:
-                    if D[i,j] <= self.cutoff:
+                    if self.D[i,j] <= self.cutoff:
                         rho_b[myc] = max(0.5*(self.rho[i]+self.rho[j]),rho_b[myc])
         for p,P in enumerate(self.clusters):
             if self.rho[p] >= rho_b[P]:
