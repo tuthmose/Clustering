@@ -8,10 +8,10 @@ from numpy.random import choice,randint,seed
 from scipy.spatial.distance import cdist,pdist,squareform
 
 # Density based cluster methods:
-# Density peaks
-# DBSCAN
-# Jarvis Patrick
-# Shared nearest neighbors
+#     - Density peaks
+#     - DBSCAN
+#     - Jarvis Patrick
+#     - Shared nearest neighbors
 
 # G Mancini, September 2019
 

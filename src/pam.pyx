@@ -101,7 +101,8 @@ class PAM(KMedoids):
         # constants and index variables
         cdef int i, j, h, si, uj, uh
         cdef int iimin, hhmin, imin, hmin
-        cdef int nswap=0, L=self.N - self.K
+        cdef int nswap=0 
+        cdef int L=self.N - self.K
         cdef double Kijh, dd, dmax
         dmax = np.max(self.D)
         # arrays and memoryviews
