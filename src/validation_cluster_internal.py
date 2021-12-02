@@ -203,11 +203,11 @@ class cluster_eval(object):
                 mask = np.sum(np.equal(X,points[cnoise]),axis=1)
                 C1 = np.where([mask==X.shape[1]])[1][0]
                 cnoise = C1
-                print(C1)
+                #print(C1)
             else:
                 mask = self.clusters==-1
                 cnoise = find_centroid(self.D,beta=1.,mask=mask)
-                print(cnoise)
+                #print(cnoise)
             clust[self.clusters==-1] = cnoise
             cent = list(set(clust))
         elif self.noise == "singles":
@@ -247,7 +247,7 @@ class cluster_eval(object):
         inter = "allav"
         intra = "allav"
         intra_avail = ("center","allav","allmax")
-        inter_avail = ("center","allav","allmin")
+        inter_avail = ("center","allav","nearest")
         # use true coordinate centers in CH instead
         # of nearest points (centroids)
         usec = False
@@ -356,7 +356,7 @@ class cluster_eval(object):
                     dij = np.mean(dist[clust==i,:][:,clust==j])
                 elif bwd == "center":
                     dij = dist[i,j]
-                elif bwd == "allmin":
+                elif bwd == "nearest":
                     dij = np.min(dist[clust==i,:][:,clust==j])
                 between.append(dij)
         W = np.max(np.asarray(within))

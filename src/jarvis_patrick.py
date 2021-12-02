@@ -227,7 +227,7 @@ class SNN(jarvis_patrick):
     grow_cluster is almost a verbatim copy from DBSCAN
     """
     
-    def __init__(self,**kwargs):
+    def __init__(self, **kwargs):
         prop_defaults = {
             "metric"    : "euclidean",
             "K"         : None,            
@@ -240,6 +240,13 @@ class SNN(jarvis_patrick):
         for (prop, default) in prop_defaults.items():
             setattr(self, prop, kwargs.get(prop, default))         
         # check some input
+        try:
+            self.K = int(self.K)
+            self.epsilon = int(self.epsilon)
+            self.minPTS = int(self.minPTS)
+        except:
+            print(self.K, self.minPTS, sel.epsilon)
+            raise ValueError("Could not convert parameters to integer")
         assert isinstance( self.K, int ) or isinstance( self.K, np.int64 )
         assert isinstance( self.epsilon, int ) or isinstance( self.epsilon, np.int64 )
         assert isinstance( self.minPTS, int ) or isinstance( self.minPTS, np.int64 )
