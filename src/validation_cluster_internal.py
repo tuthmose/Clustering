@@ -246,8 +246,8 @@ class cluster_eval(object):
         #Dunn index kwds
         inter = "allav"
         intra = "allav"
+        inter_avail = ("center","allav","nearest")        
         intra_avail = ("center","allav","allmax")
-        inter_avail = ("center","allav","nearest")
         # use true coordinate centers in CH instead
         # of nearest points (centroids)
         usec = False
