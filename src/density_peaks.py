@@ -36,7 +36,7 @@ class density_peaks(object):
         """
         calculate average distance so that
         average number of neighbors within
-        is perc of total points
+        is percent of total points
         """
         dd = np.sort(self.D.ravel())
         N = dd.shape[0]
@@ -57,7 +57,7 @@ class density_peaks(object):
                 dens = np.sum(np.exp( -(mydist/self.cutoff)**2 ))-1
             rho[i] = dens
         rank = np.argsort(rho)[::-1]
-        return rho,rank
+        return rho, rank
 
     def calc_delta(self):
         """
@@ -93,7 +93,8 @@ class density_peaks(object):
         else:
             raise ValueError("you must provide either X or D as a numpy array")
         self.N = self.D.shape[0]
-        self.cutoff = self.use_percent()
+        if self.cutoff == 'auto':
+            self.cutoff = self.use_percent()
         #calculate decision graph
         self.rho,self.order = self.calc_rho()
         self.delta,self.nneigh = self.calc_delta()

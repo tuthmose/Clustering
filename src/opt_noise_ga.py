@@ -206,22 +206,25 @@ class param_evaluator:
         """
         run cluster analysis and calculate score and penalty
         """
-        clusters = self.run_cluster(model, self.D)
-        nnoise = len(clusters[clusters==-1])
-        score = self.validate(clusters, self.D)
-        # apply noise penalty
-        if self.scaleN != 0:
-            nnoise_s = int(nnoise*self.scaleN)
-        if self.vmethod == 'silhouette' or self.vmethod == 'Dunn':
-            if self.apply_penalty:
-                penalty = 1. - nnoise/self.npoints
-                score = penalty*score
-            return 1./score
-        else:
-            if self.apply_penalty:
-                penalty = 1. + nnoise/self.npoints
-                score = penalty*score
-            return score
+        try:
+            clusters = self.run_cluster(model, self.D)
+            nnoise = len(clusters[clusters==-1])
+            score = self.validate(clusters, self.D)
+            # apply noise penalty
+            if self.scaleN != 0:
+                nnoise_s = int(nnoise*self.scaleN)
+            if self.vmethod == 'silhouette' or self.vmethod == 'Dunn':
+                if self.apply_penalty:
+                    penalty = 1. - nnoise/self.npoints
+                    score = penalty*score
+                return 1./score
+            else:
+                if self.apply_penalty:
+                    penalty = 1. + nnoise/self.npoints
+                    score = penalty*score
+                return score
+        except:
+            return 1000.
 
 class SNN_param_evaluator(param_evaluator):
     def run_cluster(self, model, D):
