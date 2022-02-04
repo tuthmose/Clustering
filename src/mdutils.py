@@ -60,14 +60,12 @@ def USR(coords,mass=None):
         usr[i*3+2] = st.skew(j)
     return usr
 
-def usr_mat(traj,sel = False):
+def usr_mat(traj, sel = False, return_matrix=False):
     """
-    given a mdtraj trajectory object
-    calculates USR for sel atom indexes
-    then generate USR distance matrix
+    given a mdtraj trajectory object calculates USR for sel atom indexes
     operates on all frames
-    the use of manhattan d. is part
-    of the procedure
+    optionally return a USR distance matrix
+    the use of manhattan d. is part of the procedure
     """
     nframes = traj.xyz.shape[0]
     usr = np.empty((nframes,12))
@@ -76,12 +74,15 @@ def usr_mat(traj,sel = False):
             usr[f] = USR(traj.xyz[f][:,sel])
     else:
         for f in range(nframes):
-            usr[f] = USR(traj.xyz[f])                  
-    distmat = np.zeros((nframes,nframes))
-    for f in range(nframes-1):
-        for g in range(f+1,nframes):
-            distmat[f,g] = sd.cityblock(usr[f],usr[g])
-    return distmat
+            usr[f] = USR(traj.xyz[f])
+    if return_matrix:
+        distmat = np.zeros((nframes,nframes))
+        for f in range(nframes-1):
+            for g in range(f+1,nframes):
+                distmat[f,g] = sd.cityblock(usr[f],usr[g])
+        return distmat
+    else:
+        return usr
     
 def one_2_two_ndx(k,n):
     """
