@@ -104,3 +104,24 @@ def tri_2_square(dim, flat):
     tri[np.triu_indices(dim, 1)] = flat
     tri[np.tril_indices(dim, 1)] = flat
     return tri
+
+def gini_coefficent(data, reverse=False, diff=False):
+    """
+    given a distribution of values estimate the Gini coefficent
+    as misure of the distribution inequality
+    see https://www.statsdirect.com/help/default.htm#nonparametric_methods/gini.htm
+    reverse=True means to consider the weight as 1./data
+    if diff is a float values are transformed as v=diff - v
+    """
+    if diff != False:
+        values = diff - data
+    else:
+        values = data
+    assert np.any(values) > 0
+    if np.any(values) < 1e-6:
+        values += 1e-6
+    if reverse:
+        values = 1./values
+    num = np.abs(np.subtract.outer(values, values)).mean()
+    G = 0.5*(num/np.mean(values))
+    return G
