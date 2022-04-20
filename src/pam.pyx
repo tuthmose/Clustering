@@ -18,7 +18,7 @@ from partition_cluster import *
 class PAM(KMedoids):
     """
     see Kaufman, L. and Rousseeuw, P.J. (1987), Clustering by means of Medoids,
-    in Statistical Data Analysis Based on the {\displaystyle L{1}}L{1}–Norm and 
+    in Statistical Data Analysis Based on the L1–Norm and 
     Related Methods, edited by Y. Dodge, North-Holland, 405–416.
     From pseudocode found in https://doi.org/10.1007/978-3-030-32047-8_16
     """
@@ -53,6 +53,7 @@ class PAM(KMedoids):
             self.inertia += self.calc_cost(points, m)
         return self.inertia, self.medoids
     
+
     @wraparound(False)  
     @boundscheck(False) 
     def BUILD(self):
@@ -67,6 +68,9 @@ class PAM(KMedoids):
         cdef double [:] cG
         cdef int I, i, j, k, imax, M
         cdef float Dj 
+        cdef double [:] cW = np.ones(self.N)
+        if np.any(self.W):
+            cW = self.W
         S = list()
         #object with global minimum distance and distances from it
         s0 = np.argmin(np.sum(self.D,axis=1))
@@ -84,7 +88,7 @@ class PAM(KMedoids):
                         Dj = dmax
                         for k in S:
                             Dj = cmin(Dj, cD[k,j])
-                        cG[I] += cmax(Dj - cD[i,j], 0.)
+                        cG[I] += cW[i]*cmax(Dj - cD[i,j], 0.)
             # take new centroid
             imax = U[np.argmax(gain)]
             S.append(imax)
@@ -111,6 +115,9 @@ class PAM(KMedoids):
         cdef double [:,:] cD = self.D
         cdef double [:,:] cDEj 
         cdef double [:,:] cTih 
+        cdef double [:] cW = np.ones(self.N)
+        if np.any(self.W):
+            cW = self.W
         # begin swap phase
         while True:
             DEj = np.sort(self.D[U, :][:, S])[:,:2]
@@ -129,7 +136,7 @@ class PAM(KMedoids):
                                 Kijh = cmin(cD[uj, uh] - cDEj[j, 0], 0.)
                             elif cD[uj, si] == cDEj[j, 0]:
                                 Kijh = cmin(cD[uj, uh], cDEj[j, 1]) - cDEj[j, 0]
-                            cTih[h, i] += Kijh
+                            cTih[h, i] += (cW[i]/cW[h])*Kijh
             Tmin = np.amin(Tih)
             if Tmin < 0:
                 pmin  = np.where(Tih==Tmin)

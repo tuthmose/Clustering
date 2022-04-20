@@ -138,6 +138,8 @@ class KMeans(PartitionClustering):
         assert isinstance(self.X,np.ndarray)
         self.N = self.X.shape[0]
         self.nfeatures = self.X.shape[1]       
+        if np.any(self.W):
+            assert self.W.shape[0] == self.N
         #we need coordinates for KMeans
        
     def newcenters(self,clusters):
@@ -149,7 +151,8 @@ class KMeans(PartitionClustering):
         centers = np.empty((self.K,self.nfeatures))
         for i in range(self.K):
             points = self.X[clusters==i]
-            centers[i] = np.average(points,axis=0,weights=self.W)
+            W = self.W[clusters==i]
+            centers[i] = np.average(points,axis=0,weights=W)
         # having assigned centers, calculate cost
         sse = .0
         dist = cdist(self.X,centers,metric=self.metric)
@@ -208,8 +211,7 @@ class KMedians(KMeans):
     
 class KMedoids(PartitionClustering):
     """
-    KMeans like solution of KMedoids
-    problem
+    KMeans like solution of KMedoids problem
     This is NOT Partition Around Medoids (PAM)
     but a different solution of the same problem
     """
@@ -229,6 +231,8 @@ class KMedoids(PartitionClustering):
         #    print("WARNING: K-Medoids should be used with l1 norm (cityblock)")
         elif self.X is not None:
             self.D = squareform(pdist(self.X,metric=self.metric))
+        if np.any(self.W):
+            assert self.W.shape[0] == self.N
            
     def boot_random(self):
         """
@@ -271,7 +275,7 @@ class KMedoids(PartitionClustering):
         compute cost with current medoids
         """
         cost = .0
-        if self.W == None:
+        if not np.any(self.W):
             cost = cost + np.sum(self.D[points,:][:,medoid])
         else:
             cost = cost + np.sum(self.W[points]*self.D[points,:][:,medoid])\
