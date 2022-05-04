@@ -162,7 +162,10 @@ class simpleGRASP:
         """
         opt_labels = deepcopy(build_labels)
         points = list(self.all_labels.difference(opt_labels))
-        LD = cdist(self.X[opt_labels],self.X[points], metric=self.metric)
+        if self.metric == "precomputed":
+            LD = self.X[opt_labels,:][:,points]
+        else:
+            LD = cdist(self.X[opt_labels],self.X[points], metric=self.metric)
         for l, ol in enumerate(opt_labels):
             neighbourhood = np.where(LD[l] <= LD)[0]
             if len(neighbourhood) == 0:
