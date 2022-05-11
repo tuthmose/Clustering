@@ -125,3 +125,21 @@ def gini_coefficent(data, reverse=False, diff=False):
     num = np.abs(np.subtract.outer(values, values)).mean()
     G = 0.5*(num/np.mean(values))
     return G
+
+def cont_coord_num(X, ion, ox, smooth, r0):
+    """
+    continuous coordination number as defined in
+    doi:10.1021/ct400988e
+    s = \sum_{ox water} 1 - \frac{1}{1+exp(-a(r_i - r0)}
+    a is a smoothing parameter
+    r0 is the first shell cutoff
+    X are the coordinates
+    ion the ion index
+    ox the oxygen atom indexes
+    """
+    xion = X[ion].reshape(1,-1)
+    dist = sd.cdist(X[ox], xion)
+    sfunc = lambda r: 1.-1./(1+np.exp(smooth*(r-r0)))
+    sarray= np.apply_along_axis(sfunc, 0, dist)
+    s = np.sum(sarray)
+    return s
