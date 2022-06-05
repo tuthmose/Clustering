@@ -53,8 +53,10 @@ class PartitionClustering:
         """
         self.X = X
         self.D = D
-        if W == None:
+        if W == None and np.all(X):
             self.W = np.ones(X.shape[0])
+        elif W == None and np.all(D):
+            self.W = np.ones(D.shape[0])
         else:
             self.W = W
         self.init2()

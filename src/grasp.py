@@ -75,10 +75,13 @@ class simpleGRASP:
         self.rng = np.random.default_rng(self.seed)
         return None
     
-    def run(self, X, init_labels=None):
+    def run(self, X, init_labels=None, forbidden_labels=None, rexcl=0.):
         """
         Get input data and run GRASP
-        - X:        input data
+        - X:           input data
+        - init_labels: initial guess for selection
+        - forbidden labels: exclude these labels from solution and 
+          any label within rexcl if != 0
         """
         #check input
         assert isinstance(X, np.ndarray)
@@ -88,6 +91,11 @@ class simpleGRASP:
         self.n_ini  = max(int(self.n_ini * self.X.shape[0]), 1)
         self.nBuild = int(self.nBuild * self.X.shape[0])
         self.nNeigh = int(self.nNeigh * self.X.shape[0])
+
+        self.forbidden_labels = forbidden_labels
+        self.rexcl = rexcl
+        if self.rexcl != 0.:
+            raise NotImplementedError
         
         print("-- Starting GRASP with ",self.N_sel," points")
             
@@ -124,7 +132,11 @@ class simpleGRASP:
         Build the restricted candidate list from
         a set of candidate feature vectors C
         """
-        pcandidates = list(self.all_labels.difference(solution))
+        if isinstance(self.forbidden_labels,list):
+            pcandidates = list(self.all_labels.difference(solution+self.forbidden_labels))
+        else:
+            pcandidates = list(self.all_labels.difference(solution))
+        #print(pcandidates,solution,self.forbidden_labels)
         candidates = self.rng.choice(pcandidates, size=self.nBuild, replace=False)
         RCL = list()
         gain = [self.score(solution + [c], **self.skwds) for c in candidates]
@@ -186,19 +198,7 @@ class simpleGRASP:
         pick n_ini elements w/o repetition to seed the solution
         """
         labels = [int(self.rng.uniform(high=self.X.shape[0]))]
-        #if self.n_ini > 1:
-        #    for l in range(1, self.n_ini):
-        #        pcandidates = self.all_labels.difference(labels)
-        #        candidates = self.rng.choice(pcandidates, size=self.nBuild/2., replace=False)
-        #        gain = [self.score(solution + [c], **self.skwds) for c in candidates]
-        #        ng = np.argsort(gain)
-        ##       roulette selection
-        #        coin = self.rng.uniform(high=np.sum(gain))
-        #        gsum = 0.
-        #        for i in ng:
-        #           gsum = gsum + gain[i]
-        #           if gsum >= coin:
-        #               labels.append(i)
-        #               break
+        if np.all(self.forbidden_labels):
+            labels = list(set(labels).difference(self.forbidden_labels))
         return labels        
         
