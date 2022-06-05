@@ -88,6 +88,8 @@ class density_peaks(object):
         # check X and/or D
         if self.metric=="precomputed" and D is None:
             raise ValueError("missing precomputed distance matrix")
+        elif self.metric=="precomputed" and isinstance(D, np.ndarray):
+            self.D = D
         elif isinstance(X, np.ndarray):
             self.D = squareform(pdist(X,metric=self.metric))
         else:

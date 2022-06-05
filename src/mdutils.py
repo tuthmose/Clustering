@@ -56,8 +56,10 @@ def USR(coords,mass=None):
     D_ftf = np.linalg.norm(coords-ftf,axis=1)
     for i,j in enumerate((D_ctd,D_cst,D_fct,D_ftf)):
         usr[i*3]   = np.mean(j)
-        usr[i*3+1] = np.var(j)
-        usr[i*3+2] = st.skew(j)
+        usr[i*3+1] = np.std(j)
+        usr[i*3+2] = np.cbrt(st.skew(j))
+        #usr[i*3+1] = np.var(j)
+        #usr[i*3+2] = st.skew(j)
     return usr
 
 def usr_mat(traj, sel = False, return_matrix=False):
@@ -138,8 +140,8 @@ def cont_coord_num(X, ion, ox, smooth, r0):
     ox the oxygen atom indexes
     """
     xion = X[ion].reshape(1,-1)
-    dist = sd.cdist(X[ox], xion)
-    sfunc = lambda r: 1.-1./(1+np.exp(smooth*(r-r0)))
+    dist = sd.cdist(X[ox], xion)[:,0]
+    sfunc = lambda r: 1.-1./(1+np.exp(-smooth*(r-r0)))
     sarray= np.apply_along_axis(sfunc, 0, dist)
     s = np.sum(sarray)
     return s

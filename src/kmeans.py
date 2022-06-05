@@ -53,7 +53,10 @@ class PartitionClustering:
         """
         self.X = X
         self.D = D
-        self.W = W
+        if W == None:
+            self.W = np.ones(X.shape[0])
+        else:
+            self.W = W
         self.init2()
         SSE_run = np.empty(self.nrun)
         centers_run  = list()
