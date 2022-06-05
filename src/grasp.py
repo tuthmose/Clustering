@@ -199,6 +199,16 @@ class simpleGRASP:
         """
         labels = [int(self.rng.uniform(high=self.X.shape[0]))]
         if np.all(self.forbidden_labels):
-            labels = list(set(labels).difference(self.forbidden_labels))
+            allowed = list(set(labels).difference(self.forbidden_labels))
+        if self.rexcl != 0:
+            dist_forbidden = sp.spatial.distance.cdist((self.X[self.forbidden_labels],\
+                            self.X[allowed]), metric=self.metric)
+            neigh_forbidden = np.where(dist_forbidden <= self.rexcl)[0]
+            print(neigh_fobidden)
+            allowed = list(set(allowed).difference(neigh_forbidden))
+            print(allowed)
+            raise ValueError
+        if np.all(self.forbidden_labels):
+            labels = allowed
         return labels        
         
