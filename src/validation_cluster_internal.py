@@ -37,6 +37,15 @@ def find_centroid(D, beta=1., mask=None):
         centroid = (sim_m.sum(axis=1)).argmax()
     return centroid  
 
+def find_centroid_simple(D, mask=None):
+    if mask is None:
+        centroid = (D.sum(axis=1)).argmin()
+    else:
+        maskt = np.expand_dims(mask,axis=0).T
+        d_m = MA.array(D, mask=~(mask*maskt))
+        centroid = (d_m.sum(axis=1)).argmax()
+    return centroid
+
 def core2centers(**kwargs):
     """
     find a centroid point for each cluster, given a list of labels

@@ -94,8 +94,6 @@ class simpleGRASP:
 
         self.forbidden_labels = forbidden_labels
         self.rexcl = rexcl
-        if self.rexcl != 0.:
-            raise NotImplementedError
         
         print("-- Starting GRASP with ",self.N_sel," points")
             
@@ -199,16 +197,19 @@ class simpleGRASP:
         """
         labels = [int(self.rng.uniform(high=self.X.shape[0]))]
         if np.all(self.forbidden_labels):
-            allowed = list(set(labels).difference(self.forbidden_labels))
+            allowed = list(set(np.arange(self.X.shape[0], dtype='int')).\
+                difference(self.forbidden_labels))
         if self.rexcl != 0:
-            dist_forbidden = sp.spatial.distance.cdist((self.X[self.forbidden_labels],\
-                            self.X[allowed]), metric=self.metric)
-            neigh_forbidden = np.where(dist_forbidden <= self.rexcl)[0]
-            print(neigh_fobidden)
+            dist_forbidden = sp.spatial.distance.cdist(self.X[self.forbidden_labels],\
+                            self.X[allowed], metric=self.metric)
+            neigh_forbidden = list()
+            for i,f in enumerate(self.forbidden_labels):
+                n = np.where(dist_forbidden[i] <= self.rexcl)[0]
+                neigh_forbidden += list(n)
+            neigh_forbidden = list(set(neigh_forbidden))
             allowed = list(set(allowed).difference(neigh_forbidden))
-            print(allowed)
-            raise ValueError
+            self.forbidden_labels = self.forbidden_labels + neigh_forbidden
         if np.all(self.forbidden_labels):
-            labels = allowed
+            labels = list(set(labels).difference(self.forbidden_labels))
         return labels        
         

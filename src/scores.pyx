@@ -49,7 +49,7 @@ class frscore:
                 DS += ef[j]*cD[j+1,i]
         
         DS = DS/(nlabels*M)
-        if self.inverse:
+        if self.inverse and np.all(DS>0):
             DS = 1./DS
         return DS
    
