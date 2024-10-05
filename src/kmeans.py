@@ -155,12 +155,15 @@ class KMeans(PartitionClustering):
         """
         centers = np.empty((self.K,self.nfeatures))
         for i in range(self.K):
-            try:
+            # if the cluster is empty stop iterating
+            # k is wrong at least for this data and/or init
+            npoints = len(clusters[clusters==i])
+            if npoints == 0:
+                return False, False
+            else:
                 points = self.X[clusters==i]
                 W = self.W[clusters==i]
                 centers[i] = np.average(points,axis=0,weights=W)
-            except:
-                print(self.W[clusters==i],i,self.K,clusters==i)
         # having assigned centers, calculate cost
         sse = .0
         dist = cdist(self.X,centers,metric=self.metric)
@@ -188,6 +191,8 @@ class KMeans(PartitionClustering):
         for it in range(self.niter):
             clusters = self.assign(centers)
             sse,centers = self.newcenters(clusters)
+            if sse == False and centers == False:
+                break
             conv = abs(sse - sse_prev)
             if conv <= self.conv and it > 3:
                 break
