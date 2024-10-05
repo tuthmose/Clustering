@@ -155,9 +155,12 @@ class KMeans(PartitionClustering):
         """
         centers = np.empty((self.K,self.nfeatures))
         for i in range(self.K):
-            points = self.X[clusters==i]
-            W = self.W[clusters==i]
-            centers[i] = np.average(points,axis=0,weights=W)
+            try:
+                points = self.X[clusters==i]
+                W = self.W[clusters==i]
+                centers[i] = np.average(points,axis=0,weights=W)
+            except:
+                print(self.W[clusters==i],i,self.K,clusters==i)
         # having assigned centers, calculate cost
         sse = .0
         dist = cdist(self.X,centers,metric=self.metric)
@@ -171,10 +174,9 @@ class KMeans(PartitionClustering):
         Sum of Squared Errors
         """
         clusters = np.empty(self.N,dtype='int')
-        #https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cdist.html
-        # calcola le distanze di tutti i punti da tutti i centroidi
+        # distances of all points from all centers
         dist = cdist(self.X,centers, metric=self.metric)
-        #per ogni punto cerca il centroide più vicino
+        # for each point find the nearest center
         for pj in range(self.N):
             nearest = np.argmin(dist[pj])
             #cl = np.unravel_index(nearest,(1,self.K))
