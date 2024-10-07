@@ -176,13 +176,11 @@ class KMeans(PartitionClustering):
         # does not work if number of empty > non empty
         nempty = np.count_nonzero(empty)
         if nempty > self.K - nempty:
-            raise ValueError("Empty clusters exceed non empty ones")
+            raise ValueError("Empty clusters exceed not empty ones")
         elif nempty > 0:
-            print(nempty,centers,sse)
             # fill empty cluster with single points
             count_empty = 0
             sort_sse = np.argsort(sse)
-            print(sse, sort_sse)
             for i in range(self.K):
                 if empty[i]:
                     # found empty cluster; swap with point starting
@@ -191,17 +189,11 @@ class KMeans(PartitionClustering):
                     center_largest_sse = centers[next_largest_sse]
                     count_empty += 1
                     far_away = np.argmax(dist[:,next_largest_sse])
-                    print(far_away, next_largest_sse, i, self.K, dist.shape)
-                    print("www",dist[:,next_largest_sse].shape)
-                    print(sse[next_largest_sse], dist[far_away, next_largest_sse]**2)
                     # assign far_away point as new cluster
                     # will have sse = 0
                     centers[i] = self.X[far_away]
                     # adjust SSE
                     sse[next_largest_sse] -= (dist[far_away, next_largest_sse]**2)
-                    print(sse[next_largest_sse], dist[far_away, next_largest_sse]**2)
-        if found:
-            quit()
         return np.sum(sse), centers
     
     def assign(self, centers):
