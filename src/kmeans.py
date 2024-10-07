@@ -159,7 +159,7 @@ class KMeans(PartitionClustering):
             # k is wrong at least for this data and/or init
             npoints = len(clusters[clusters==i])
             if npoints == 0:
-                return False, False
+               break 
             else:
                 points = self.X[clusters==i]
                 W = self.W[clusters==i]
@@ -191,8 +191,6 @@ class KMeans(PartitionClustering):
         for it in range(self.niter):
             clusters = self.assign(centers)
             sse,centers = self.newcenters(clusters)
-            if sse == False and centers == False:
-                break
             conv = abs(sse - sse_prev)
             if conv <= self.conv and it > 3:
                 break
